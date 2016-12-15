@@ -1,0 +1,215 @@
+Option Explicit
+
+Sub Filter_Master(InvCodeArray() As String, ByVal InvTypeInput As Long, ByVal lien As String, _
+    BoardMonthArray() As String, ByVal MonthTypeInput As Long, wb2 As Workbook)
+
+Dim pt As PivotTable
+Dim size As Long
+Dim InvNumFilterTrigger As String, MonthFilterTrigger As String, BlockComboFilterTrigger As String
+Dim h As Long, i As Long, j As Long, k As Long
+Dim inv_dum As String, lien_dum As String, board_dum As String, block_dum As String
+Dim varItemlist() As String
+Dim ptsheets() As Long
+Dim FieldNamesArray(1 To 4, 1 To 3) As String
+Dim FilterArray() As String
+Dim InvType As String
+Dim pti As PivotItem
+Dim blTmp As Boolean
+Dim thePivotField As String
+Dim theFilterType() As String
+
+wb2.Activate
+
+If InvTypeInput = 1 Then
+    InvType = "InvestorNumber"
+    InvNumFilterTrigger = "2"
+    BlockComboFilterTrigger = "1"
+ElseIf InvTypeInput = 2 Then
+    InvType = "InvestorNumberBlockCombo"
+    InvNumFilterTrigger = "1"
+    BlockComboFilterTrigger = "2"
+ElseIf InvTypeInput = 3 Then
+    InvType = "InvestorNumber"
+    InvNumFilterTrigger = "1"
+    BlockComboFilterTrigger = "1"
+Else
+    MsgBox "You Have a Problem"
+    Stop
+End If
+    
+
+If MonthTypeInput = 1 And InvTypeInput <> 3 Then
+    MonthFilterTrigger = "2"
+    ReDim FilterArray(1 To 2, 1 To 2)
+    FilterArray(1, 1) = InvType
+    FilterArray(1, 2) = "1"
+    FilterArray(2, 1) = "BoardingMonth"
+    FilterArray(2, 2) = "2"
+ElseIf MonthTypeInput = 3 And InvTypeInput <> 3 Then
+    MonthFilterTrigger = "1"
+    ReDim FilterArray(1 To 1, 1 To 2)
+    FilterArray(1, 1) = InvType
+    FilterArray(1, 2) = "1"
+ElseIf MonthTypeInput = 1 And InvTypeInput = 3 Then
+    MonthFilterTrigger = "2"
+    ReDim FilterArray(1 To 1, 1 To 2)
+    FilterArray(1, 1) = "BoardingMonth"
+    FilterArray(1, 2) = "2"
+ElseIf MonthTypeInput = 3 And InvTypeInput = 3 Then
+    MonthFilterTrigger = "1"
+Else
+    MsgBox "You Have a Problem"
+    Stop
+End If
+
+inv_dum = "100000"
+lien_dum = "0"
+board_dum = "12/31/2999"
+block_dum = "100000_0"
+
+Application.ScreenUpdating = False
+Application.Calculation = xlCalculationManual
+Application.EnableEvents = False
+
+ptsheets = ptArray()
+
+For i = 1 To ptsheets(UBound(ptsheets), 1)
+    For Each pt In ActiveWorkbook.Sheets(i).PivotTables
+        pt.ManualUpdate = True
+    Next pt
+Next i
+
+FieldNamesArray(1, 1) = "InvestorNumber"
+FieldNamesArray(1, 2) = InvNumFilterTrigger
+FieldNamesArray(1, 3) = inv_dum
+FieldNamesArray(2, 1) = "BoardingMonth"
+FieldNamesArray(2, 2) = MonthFilterTrigger
+FieldNamesArray(2, 3) = board_dum
+FieldNamesArray(3, 1) = "InvestorNumberBlockCombo"
+FieldNamesArray(3, 2) = BlockComboFilterTrigger
+FieldNamesArray(3, 3) = block_dum
+FieldNamesArray(4, 1) = "lienposition"
+FieldNamesArray(4, 2) = lien
+FieldNamesArray(4, 3) = lien_dum
+
+
+For i = LBound(ptsheets, 1) To UBound(ptsheets, 1)
+    For j = LBound(FieldNamesArray) To UBound(FieldNamesArray)
+        With ThisWorkbook.Worksheets(ptsheets(i, 1)).PivotTables(ptsheets(i, 2)).PivotFields(FieldNamesArray(j, 1))
+            If FieldNamesArray(j, 1) <> "lienposition" Then
+                If FieldNamesArray(j, 2) = "1" Then
+                    .ClearManualFilter
+                ElseIf FieldNamesArray(j, 2) = "2" Then
+                    k = .PivotItems.Count
+                    .PivotItems(FieldNamesArray(j, 3)).Visible = True
+                        For Each pti In .PivotItems
+                            If pti <> FieldNamesArray(j, 3) Then
+                            pti.Visible = False
+                            Else
+                            pti.Visible = True
+                            End If
+                        Next pti
+                Else
+                    MsgBox "You Have a Problem"
+                    Stop
+                End If
+            Else
+                If FieldNamesArray(j, 2) = "3" Then
+                    .ClearManualFilter
+                ElseIf FieldNamesArray(j, 2) = "1" Or FieldNamesArray(j, 2) = "2" Then
+                    .ClearManualFilter
+                        For Each pti In .PivotItems
+                            If pti <> FieldNamesArray(j, 2) Then
+                                .PivotItems("0").Visible = True
+                                pti.Visible = False
+                                .PivotItems("0").Visible = True
+                            Else
+                                pti.Visible = True
+                                .PivotItems("0").Visible = False
+                            End If
+                        Next pti
+                Else
+                    MsgBox "You Have a Problem"
+                    Stop
+                End If
+            End If
+        End With
+    Next j
+Next i
+    
+If Not InvTypeInput = 3 Or Not MonthTypeInput = 3 Then
+     For i = 1 To UBound(FilterArray)
+        thePivotField = FilterArray(i, 1)
+        If FilterArray(i, 2) = "1" Then
+            theFilterType = InvCodeArray
+        ElseIf FilterArray(i, 2) = "2" Then
+            theFilterType = BoardMonthArray
+        Else
+            MsgBox "You have a problem"
+            Stop
+        End If
+        
+        For j = LBound(ptsheets, 1) To UBound(ptsheets, 1)
+            Filter_PivotField_Master _
+                pvtField:=ThisWorkbook.Worksheets(ptsheets(j, 1)).PivotTables(ptsheets(j, 2)).PivotFields(thePivotField), _
+                FilterTypeArray:=theFilterType
+        Next j
+    Next i
+Else
+Debug.Print "All codes, all months"
+End If
+
+For i = 1 To ptsheets(UBound(ptsheets), 1)
+    For Each pt In ActiveWorkbook.Sheets(i).PivotTables
+        pt.ManualUpdate = False
+    Next pt
+Next i
+
+Application.Calculation = xlCalculationAutomatic
+Application.EnableEvents = True
+Application.ScreenUpdating = True
+    
+End Sub
+
+
+Private Function Filter_PivotField_Master(pvtField As PivotField, FilterTypeArray() As String)
+        
+Dim strItem1 As String
+Dim blTmp As Boolean
+Dim varItemlist() As String
+Dim i As Long
+
+On Error Resume Next
+
+varItemlist = FilterTypeArray()
+
+With pvtField
+    If .Orientation = xlPageField Then .EnableMultiplePageItems = True
+    For i = LBound(varItemlist) To UBound(varItemlist)
+        blTmp = Not (IsError(.PivotItems(varItemlist(i)).Visible))
+        If blTmp Then
+            strItem1 = .PivotItems(varItemlist(i))
+            Exit For
+        End If
+    Next i
+    If strItem1 = "" Then
+        Exit Function
+    End If
+    .PivotItems(strItem1).Visible = True
+    For i = 1 To .PivotItems.Count
+        If .PivotItems(i) <> strItem1 And _
+            .PivotItems(i).Visible = True Then
+            .PivotItems(i).Visible = False
+        End If
+    Next i
+    For i = LBound(varItemlist) To UBound(varItemlist)
+        .PivotItems(varItemlist(i)).Visible = True
+    Next i
+End With
+     
+On Error GoTo 0
+
+End Function
+
+
+
