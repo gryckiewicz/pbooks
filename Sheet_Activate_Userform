@@ -1,0 +1,50 @@
+Option Explicit
+
+Private Sub Worksheet_Activate()
+Dim ctrl As Control
+Dim lastrow As Long
+Dim lastrow2 As Long
+Dim lastrow3 As Long
+Dim wsBooks As Worksheet, wsInv As Worksheet, wsPages As Worksheet
+
+Set wsBooks = ThisWorkbook.Sheets("Standard_Books")
+Set wsInv = ThisWorkbook.Sheets("Investor_Codes")
+Set wsPages = ThisWorkbook.Sheets("Pages_Key")
+
+
+With wsBooks
+    lastrow2 = .Cells(wsBooks.Rows.Count, 2).End(xlUp).row
+End With
+
+With wsInv
+    lastrow = .Cells(wsInv.Rows.Count, 3).End(xlUp).row
+End With
+
+With wsPages
+    lastrow3 = .Cells(wsPages.Rows.Count, 1).End(xlUp).row
+End With
+
+For Each ctrl In UserForm1.Controls
+        If ctrl.Name <> "ComboBox1" And ctrl.Name <> "Label20" And _
+            ctrl.Name <> "CommandButton2" And ctrl.Name <> "CommandButton3" And _
+            ctrl.Name <> "CommandButton5" Then
+'            ctrl.Name <> "Frame3" And ctrl.Name <> "Frame5" And _
+'            TypeName(ctrl) <> "Frame" And TypeName(ctrl) <> "Label" Then
+            ctrl.Enabled = False
+        Else
+        End If
+Next ctrl
+
+With UserForm1
+  .StartUpPosition = 0
+  .Left = Application.Left + (0.5 * Application.Width) - (0.5 * .Width)
+  .Top = Application.Top + (0.5 * Application.Height) - (0.5 * .Height)
+  .ListBox1.RowSource = "Standard_Books!A3:A" & lastrow2
+  .ComboBox2.RowSource = "Investor_Codes!C2:C" & lastrow
+  .ComboBox2.Value = "Select"
+  .ListBox2.RowSource = "Pages_Key!E2:E" & lastrow3
+  .Show
+End With
+
+End Sub
+
