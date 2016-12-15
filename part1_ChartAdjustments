@@ -1,0 +1,287 @@
+Option Explicit
+
+Sub ScaleAxes()
+
+Dim Ch As Worksheet
+Dim Pr2 As Worksheet
+Dim Pr5 As Worksheet
+Dim Pr6 As Worksheet
+Dim Pr7 As Worksheet
+Dim Pr9 As Worksheet
+Dim a, b, c As String
+
+
+Set Ch = ThisWorkbook.Worksheets("Chart Analysis")
+Set Pr2 = ThisWorkbook.Worksheets("Presentation2")
+Set Pr5 = ThisWorkbook.Worksheets("Presentation5")
+Set Pr6 = ThisWorkbook.Worksheets("Presentation6")
+Set Pr7 = ThisWorkbook.Worksheets("Presentation7")
+Set Pr9 = ThisWorkbook.Worksheets("Presentation9")
+
+a = Ch.Range("U15").Value
+b = Ch.Range("U16").Value
+c = Ch.Range("V16").Value
+
+On Error Resume Next
+
+With Pr2
+    With .ChartObjects(1).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R3").Value
+            .MinimumScale = Ch.Range("Q3").Value
+        End With
+    End With
+    With .ChartObjects(2).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R2").Value
+            .MinimumScale = Ch.Range("Q2").Value
+        End With
+    End With
+End With
+
+With Pr5
+'    With .ChartObjects(1).Activate
+'        With ActiveChart.Axes(xlValue)
+'            .MaximumScale = Ch.Range("R4").Value
+'            .MinimumScale = Ch.Range("Q4").Value
+'        End With
+'    End With
+    With .ChartObjects(2).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R5").Value
+            .MinimumScale = Ch.Range("Q5").Value
+        End With
+    End With
+    With .ChartObjects(3).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R6").Value
+            .MinimumScale = Ch.Range("Q6").Value
+        End With
+    End With
+    With .ChartObjects(4).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R7").Value
+            .MinimumScale = Ch.Range("Q7").Value
+        End With
+    End With
+    With .ChartObjects(5).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R8").Value
+            .MinimumScale = Ch.Range("Q8").Value
+        End With
+    End With
+    With .ChartObjects(6).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R9").Value
+            .MinimumScale = Ch.Range("Q9").Value
+        End With
+    End With
+End With
+
+With Pr6
+    With .ChartObjects(1).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R10").Value
+            .MinimumScale = Ch.Range("Q10").Value
+        End With
+    End With
+    With .ChartObjects(2).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R11").Value
+            .MinimumScale = Ch.Range("Q11").Value
+        End With
+    End With
+    With .ChartObjects(3).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R12").Value
+            .MinimumScale = Ch.Range("Q12").Value
+        End With
+    End With
+    With .ChartObjects(4).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R13").Value
+            .MinimumScale = Ch.Range("Q13").Value
+        End With
+    End With
+    With .ChartObjects(5).Activate
+        With ActiveChart.Axes(xlValue)
+            .MaximumScale = Ch.Range("R14").Value
+            .MinimumScale = Ch.Range("Q14").Value
+        End With
+    End With
+  
+Pr7.ChartObjects(1).Activate
+    With ActiveChart.Axes(xlValue, xlPrimary)
+        If a = "Y" Then
+        .TickLabels.NumberFormat = "#,##0.0"
+        Else
+        .TickLabels.NumberFormat = "#,##0"
+        End If
+    End With
+
+    With ActiveChart.Axes(xlValue, xlSecondary)
+        .MaximumScale = Ch.Range("T15").Value
+        .MinimumScale = Ch.Range("S15").Value
+    End With
+    
+Pr9.ChartObjects(1).Activate
+    With ActiveChart.Axes(xlValue, xlPrimary)
+        If b = "Y" Then
+        .TickLabels.NumberFormat = "#,##0.0"
+        Else
+        .TickLabels.NumberFormat = "#,##0"
+        End If
+    End With
+    With ActiveChart.Axes(xlValue, xlSecondary)
+        If c = "Y" Then
+        .TickLabels.NumberFormat = "#,##0.0"
+        Else
+        .TickLabels.NumberFormat = "#,##0"
+        End If
+        .MaximumScale = Ch.Range("T16").Value
+        .MinimumScale = Ch.Range("S16").Value
+    End With
+  
+End With
+
+End Sub
+
+
+Sub move_label()
+Dim ws1 As Worksheet, ws2 As Worksheet, ws3 As Worksheet, ws4 As Worksheet
+Dim rg1 As Range, rg2 As Range, rg3 As Range, rg4 As Range
+Dim a As Range, b As Range, y As Range, z As Range
+Dim i As Integer
+
+Set ws1 = ActiveWorkbook.Sheets("Chart Analysis")
+Set ws2 = ActiveWorkbook.Sheets("Presentation5")
+Set ws3 = ActiveWorkbook.Sheets("Presentation6")
+Set ws4 = ActiveWorkbook.Sheets("Presentation2")
+
+
+Set rg1 = ws1.Range("Q19:Q30")
+Set rg2 = ws1.Range("R19:R30")
+Set rg3 = ws1.Range("S19:S30")
+Set rg4 = ws1.Range("T19:T30")
+
+'On Error Resume Next
+
+With ws2
+    For i = 1 To 6
+        .ChartObjects(i).Activate
+        If rg1.Cells(i) > rg2.Cells(i) Then
+        ActiveChart.SeriesCollection(1).Points(1).DataLabel.Position = xlLabelPositionAbove
+        ActiveChart.SeriesCollection(2).Points(1).DataLabel.Position = xlLabelPositionBelow
+        Else
+        ActiveChart.SeriesCollection(1).Points(1).DataLabel.Position = xlLabelPositionBelow
+        ActiveChart.SeriesCollection(2).Points(1).DataLabel.Position = xlLabelPositionAbove
+        End If
+    
+        If rg3.Cells(i) > rg4.Cells(i) Then
+        ActiveChart.SeriesCollection(1).Points(12).DataLabel.Position = xlLabelPositionAbove
+        ActiveChart.SeriesCollection(2).Points(12).DataLabel.Position = xlLabelPositionBelow
+        Else
+        ActiveChart.SeriesCollection(1).Points(12).DataLabel.Position = xlLabelPositionBelow
+        ActiveChart.SeriesCollection(2).Points(12).DataLabel.Position = xlLabelPositionAbove
+        End If
+    Next i
+    
+End With
+
+With ws3
+    For i = 1 To 5
+        .ChartObjects(i).Activate
+        If rg1.Cells(i + 6) > rg2.Cells(i + 6) Then
+        ActiveChart.SeriesCollection(1).Points(1).DataLabel.Position = xlLabelPositionAbove
+        ActiveChart.SeriesCollection(2).Points(1).DataLabel.Position = xlLabelPositionBelow
+        Else
+        ActiveChart.SeriesCollection(1).Points(1).DataLabel.Position = xlLabelPositionBelow
+        ActiveChart.SeriesCollection(2).Points(1).DataLabel.Position = xlLabelPositionAbove
+        End If
+    
+        If rg3.Cells(i + 6) > rg4.Cells(i + 6) Then
+        ActiveChart.SeriesCollection(1).Points(12).DataLabel.Position = xlLabelPositionAbove
+        ActiveChart.SeriesCollection(2).Points(12).DataLabel.Position = xlLabelPositionBelow
+        Else
+        ActiveChart.SeriesCollection(1).Points(12).DataLabel.Position = xlLabelPositionBelow
+        ActiveChart.SeriesCollection(2).Points(12).DataLabel.Position = xlLabelPositionAbove
+        End If
+    Next i
+    
+End With
+
+' The range objects assigned below are just for ease of coding in the upcoming section.
+' a = First month Current %
+' b = First month Foreclosure %
+' c = Last month Current %
+' d = Last month Foreclosure %
+' the seriesCollection(1) is the Current %
+' the seriesCollection(2) is the Foreclosure %
+Set a = rg1.Cells(12)
+Set b = rg2.Cells(12)
+Set y = rg3.Cells(12)
+Set z = rg4.Cells(12)
+
+With ws4
+        .ChartObjects(1).Activate
+        If a > b Then
+            If a <= 1 And a >= 0.9 Then
+                ActiveChart.SeriesCollection(1).Points(1).DataLabel.Position = xlLabelPositionBelow
+            Else
+                ActiveChart.SeriesCollection(1).Points(1).DataLabel.Position = xlLabelPositionAbove
+            End If
+            If b >= 0 And b <= 0.12 Then
+                ActiveChart.SeriesCollection(2).Points(1).DataLabel.Position = xlLabelPositionAbove
+            Else
+                ActiveChart.SeriesCollection(2).Points(1).DataLabel.Position = xlLabelPositionBelow
+            End If
+        ElseIf a < b Then
+            If b <= 1 And b >= 0.9 Then
+                ActiveChart.SeriesCollection(2).Points(1).DataLabel.Position = xlLabelPositionBelow
+            Else
+                ActiveChart.SeriesCollection(2).Points(1).DataLabel.Position = xlLabelPositionAbove
+            End If
+            If a >= 0 And a <= 0.12 Then
+                ActiveChart.SeriesCollection(1).Points(1).DataLabel.Position = xlLabelPositionAbove
+            Else
+                ActiveChart.SeriesCollection(1).Points(1).DataLabel.Position = xlLabelPositionBelow
+            End If
+        ElseIf a = b Then
+                ActiveChart.SeriesCollection(1).Points(1).DataLabel.Position = xlLabelPositionAbove
+                ActiveChart.SeriesCollection(2).Points(1).DataLabel.Position = xlLabelPositionBelow
+        Else
+            Stop
+        End If
+        If y > z Then
+            If y <= 1 And y >= 0.9 Then
+                ActiveChart.SeriesCollection(1).Points(6).DataLabel.Position = xlLabelPositionBelow
+            Else
+                ActiveChart.SeriesCollection(1).Points(6).DataLabel.Position = xlLabelPositionAbove
+            End If
+            If z >= 0 And z <= 0.12 Then
+                ActiveChart.SeriesCollection(2).Points(6).DataLabel.Position = xlLabelPositionAbove
+            Else
+                ActiveChart.SeriesCollection(2).Points(6).DataLabel.Position = xlLabelPositionBelow
+            End If
+        ElseIf y < z Then
+            If z <= 1 And z >= 0.9 Then
+                ActiveChart.SeriesCollection(2).Points(6).DataLabel.Position = xlLabelPositionBelow
+            Else
+                ActiveChart.SeriesCollection(2).Points(6).DataLabel.Position = xlLabelPositionAbove
+            End If
+            If y >= 0 And y <= 0.12 Then
+                ActiveChart.SeriesCollection(1).Points(6).DataLabel.Position = xlLabelPositionAbove
+            Else
+                ActiveChart.SeriesCollection(1).Points(6).DataLabel.Position = xlLabelPositionBelow
+            End If
+        ElseIf y = z Then
+                ActiveChart.SeriesCollection(1).Points(6).DataLabel.Position = xlLabelPositionAbove
+                ActiveChart.SeriesCollection(2).Points(6).DataLabel.Position = xlLabelPositionBelow
+        Else
+            Stop
+        End If
+
+End With
+End Sub
+
+
