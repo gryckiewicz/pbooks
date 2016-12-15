@@ -1,0 +1,373 @@
+Option Explicit
+
+Sub Pbook_to_PDF(ByVal wb2 As Workbook, wb3 As Workbook, PDF_FilePath As String, ByVal pbookname As String, ByVal PBookDate As String, PageArray() As String)
+' This subroutnine is used by both the standard and the ad hoc process to create the PDF, among other things preliminary to that action.
+' It accepts the parameters above and 1) copies over the template files to a new workbook as values, 2) ensures formatting is preserved
+' on things like the superscript footnotes, 3) calls up the sort routine to order the pages properly, 4) hides pages not needed in
+' final book, 5) creates the PDF.
+
+Dim ws As Worksheet
+Dim wb1 As Workbook
+Dim rng As Range, cell As Range
+Dim counter As Long, i As Long, j As Long, k As Long
+Dim wbstr As String, wsstr As String, celltext As String
+Dim shtarry() As String
+Dim SuperScriptArray() As Variant
+Dim blTmp As Boolean
+Dim lastrow As Long
+
+Application.DisplayAlerts = False
+Application.ScreenUpdating = False
+
+Set wb1 = ThisWorkbook
+
+wbstr = Mid(wb2.Name, 23, 1)
+
+' This routine is called up after the filtering and adjusting is done for a particular
+' template. The parent procedure calls up this routine once for each template. Therefore
+' there are triggers in the code below based on which template has just been adjusted.
+' For instance, below checks if it was the first template which then triggers a copy over
+' of the pages key from the main file which contains the list of performance book pages
+' in their correct order. This will be used for sorting later on.
+If wbstr = 1 Then
+    With wb1
+        .Sheets("Pages_Key").Copy after:=wb3.Sheets(1)
+    End With
+Else
+End If
+
+' With the latest template workbook,
+With wb2
+    
+    ' If it is the 2nd template, adjust the cover page to include the appropriate book
+    ' name and report date
+    If wbstr = 2 Then
+        .Sheets("Presentation7").Range("R11").Value = pbookname
+        .Sheets("Presentation7").Range("R16").Value = PBookDate
+    Else
+    End If
+    
+    ' Cycle through each sheet and find out how many pages are called "presentation"
+    ' in the template file. Adjust an array to fit that number of worksheets.
+    For Each ws In .Sheets
+        If Left(ws.Name, 12) = "Presentation" Then
+        counter = counter + 1
+        Else
+        End If
+    Next ws
+    
+    ReDim shtarry(1 To counter + 1)
+    
+    ' Each template file has a "chart analysis" sheet that needs to be copied over
+    ' at the same time with the rest of the templates. **Warning** if this sheet
+    ' is not copied over at the same time, all of the charts will have referecnes
+    ' to their old template files rather than a reference within the new file.
+    ' So this next part assigns the "Chart Analysis" page to the first position
+    ' of shtarry and then loads up the shtarry with all the presentation sheets.
+    shtarry(1) = "Chart Analysis"
+    
+    For i = 2 To UBound(shtarry)
+        shtarry(i) = "Presentation" & i - 1
+    Next i
+    
+    ' This is tricky. In excel, you can select multiple sheets at one time and
+    ' copy them at once over to another workbook. To mimick this in VBA, we need
+    ' to use the shtarry in an odd way. The Sheets class has a copy method that
+    ' accepts an argument of either one worksheet or a list of worksheets. Somehow
+    ' VBA allows an array to act as this list of worksheets. So this copies over
+    ' the chart analysis sheet and presentation sheets to the new workbook and appends
+    ' it to the end of the worksheets.
+    .Sheets(shtarry()).Copy after:=wb3.Sheets(wb3.Sheets.Count)
+
+End With
+
+' With the workbook that will be the excel version of the final pbook...
+With wb3
+        
+    ' So after the sheets were copied over in the last section, this upcoming section
+    ' performs the "paste as values" necessary to disconnect all references to the
+    ' template files. To perform the copy/pastevalues requires a different plan per
+    ' template file.
+    ' First, the "Chart analysis" sheets have to be renamed so that there can be
+    ' multiple versions of this sheet but each with a unique name to avoid confusion
+    ' in later loops.
+    If wbstr = 2 Then
+        shtarry(1) = "Chart Analysis (2)"
+    ElseIf wbstr = 3 Then
+        shtarry(1) = "Chart Analysis (3)"
+    Else
+    End If
+    
+    ' The purpose of this section is to ensure that the superscript characters throughout
+    ' the book (footnotes) are able to be superscript again after the data is copied over
+    ' as values. By itself, the copy/pastevalues action eliminates the superscripts.
+    ' So we loop through each worksheet in sheet array and perform the following:
+        ' First redimension a new array called SuperScriptArray (aka "SSA").
+        ' SSA has two dimensions. The first contains the position number within shtarry.
+        ' It is dimensioned to 10 because that is the max number of sheets in any template
+        ' file (it is unlikely this will ever be more than 10). The second dimension has
+        ' four positions which will be described in a moment.
+        ' In the "For Each cell" loop, we move through each cell and then loop through
+        ' each cell's value to find superscript characters. Once a superscript is found,
+        ' SuperScriptArray is loaded with the index position of shtarry in the first
+        ' dimension, and then each component of the second dimension is loaded with
+        ' the specifics of the superscript characteristics. You can see below what those
+        ' are.
+    For Each ws In .Sheets(shtarry())
+        ws.Activate
+        j = 0
+        ReDim SuperScriptArray(1, 1)
+        ReDim SuperScriptArray(1 To 10, 1 To 4)
+        Set rng = ActiveSheet.UsedRange
+        For Each cell In rng
+                On Error Resume Next
+                cell.Activate
+                celltext = cell.Cells.Value
+                For counter = 1 To Len(celltext)
+                        If cell.Characters(counter, 1).Font.Superscript = True Then
+                                j = j + 1
+                                SuperScriptArray(j, 1) = ws.Name
+                                SuperScriptArray(j, 2) = cell.Address
+                                SuperScriptArray(j, 3) = counter
+                                SuperScriptArray(j, 4) = Len(celltext)
+                        Else
+                        End If
+                Next counter
+                On Error GoTo 0
+        Next cell
+        
+        ' this then performs the copy/paste values. It is an alternative way to do it
+        ' besides the actual copy/pastevalues method of the range class (which is a pain
+        ' in the ass to use).
+        With ActiveSheet.UsedRange
+            .Value = .Value
+        End With
+        
+        ' now that the sheet values have all been copied, this next loop cycles through
+        ' SSA and finds the cells and characters that need to be made SuperScript. It
+        ' then performs that action.
+        On Error Resume Next
+                For j = LBound(SuperScriptArray) To UBound(SuperScriptArray)
+                        Sheets(SuperScriptArray(j, 1)).Range(SuperScriptArray(j, 2)).Characters(SuperScriptArray(j, 3)).Font.Superscript = True
+                        For k = SuperScriptArray(j, 3) + 1 To SuperScriptArray(j, 4)
+                                Sheets(SuperScriptArray(j, 1)).Range(SuperScriptArray(j, 2)).Characters(k).Font.Superscript = False
+                        Next k
+                Next j
+        On Error GoTo 0
+        
+        ' This then applies page numbers to all the sheets
+        With ActiveSheet.PageSetup
+            .CenterFooter = "Page &P of &N"
+            .RightFooter = pbookname & " (as of " & PBookDate & ")"
+            .ScaleWithDocHeaderFooter = False
+        End With
+    Next ws
+    
+    
+    ' After the previous loop is complete, we then hide the basic sheets that are
+    ' hidden in every book. (*disclaimer - there is probably redundant code for hiding
+    ' sheets throughout the remainder of this routine; meaning it could probably be
+    ' refactored to be more efficient)
+    If .Sheets("Sheet1").Visible = True Then
+        Sheets(Array("Chart Analysis", "Sheet1", "Pages_Key")).Visible = False
+    Else
+        For Each ws In .Sheets
+            If Left(ws.Name, 14) = "Chart Analysis" Then
+                ws.Move after:=.Sheets("Chart Analysis")
+                ws.Visible = False
+            Else
+            End If
+        Next ws
+    End If
+            
+    ' loop through each of the sheets of the workbook to lookup the actual
+    ' page name and adjust the worksheets accordingly.
+    lastrow = .Sheets("Pages_Key").Cells(.Sheets("Pages_Key").Rows.Count, 1).End(xlUp).row
+    For Each ws In .Sheets
+        If ws.Visible = True And Left(ws.Name, 12) = "Presentation" Then
+            ws.Name = wbstr & "_" & ws.Name
+            wsstr = WorksheetFunction.VLookup(ws.Name, .Sheets("Pages_Key").Range("B2:E" & lastrow), 4, False)
+            ws.Name = wsstr
+        Else
+        End If
+        
+    Next ws
+    
+    ' If this the third and final template, then start the finishing parts of the
+    ' process starting with calling up the sorting routine.
+    If wbstr = 3 Then
+        Call PBook_Sort(wb3)
+        
+        ' Add the page number to the configuration page
+        wb3.Sheets("Configuration_Details").Activate
+        With ActiveSheet.PageSetup
+                .CenterFooter = "Page &P of &N"
+                .RightFooter = pbookname & " (as of " & PBookDate & ")"
+                .ScaleWithDocHeaderFooter = False
+        End With
+        
+        ' Loop through the worksheets again and test whether the worksheet is in the
+        ' array of pages to keep in the final pbook (PageArray). If not, then hide it.
+        For Each ws In .Sheets
+            i = 1
+            blTmp = False
+            Do Until blTmp = True Or i > UBound(PageArray)
+                If ws.Name = PageArray(i) Or ws.Name = "Configuration_Details" Then
+                    blTmp = True
+                Else
+                i = i + 1
+                blTmp = False
+                End If
+            Loop
+            If blTmp = True Then
+                ws.Visible = True
+            Else
+                ws.Visible = False
+            End If
+        Next ws
+        
+        ' Loop through the worksheets again and see if cell "AI1" in each sheet is
+        ' instructing the program to include ("print") or exclude ("hide") the page
+        ' based on whether it has any data to show.
+        ' Included is a simple script to add a disclaimer on Title Page for "Internal Use Only" pages
+        blTmp = False
+        For Each ws In .Sheets
+            If ws.Visible = True And (ws.Name <> "Configuration_Details" Or ws.Name <> "Title Page") And ws.Range("AI1").Value = "Hide" Then
+                ws.Visible = False
+            Else
+            End If
+            If ws.Visible = True And ws.Name = "Loss Mitigation Pipeline" Then
+                .Sheets("Title Page").Range("B23").Value = "Loss Mitigation Pipeline (For Internal Use Only)"
+                .Sheets("Title Page").Range("B23").Font.Color = RGB(255, 0, 0)
+                .Sheets("Title Page").Range("B23").Font.Bold = True
+                .Sheets("Title Page").Range("B23").Font.size = 11
+                blTmp = True
+            ElseIf ws.Visible = True And ws.Name = "120+ Not in FC" Then
+                .Sheets("Title Page").Range("B24").Value = "120+ Not in FC (For Internal Use Only)"
+                .Sheets("Title Page").Range("B24").Font.Color = RGB(255, 0, 0)
+                .Sheets("Title Page").Range("B24").Font.Bold = True
+                .Sheets("Title Page").Range("B24").Font.size = 11
+                blTmp = True
+            Else
+            End If
+        Next ws
+        
+        If blTmp = True Then
+            .Sheets("Title Page").Range("B21").Value = "Includes:"
+            .Sheets("Title Page").Range("B21").Font.Color = RGB(255, 0, 0)
+            .Sheets("Title Page").Range("B21").Font.Bold = True
+            .Sheets("Title Page").Range("B21").Font.size = 18
+        Else
+        End If
+        
+        ' Loop through the worksheets yet again and change all hidden sheets to
+        ' "very hidden" so if the excel falls into the wrong hands they can't find
+        ' hidden sheets (these can only be unhidden in the VBA editor)
+        For Each ws In .Sheets
+            If ws.Visible = xlSheetHidden Then
+                ws.Visible = xlSheetVeryHidden
+            Else
+            End If
+        Next ws
+              
+        wb3.Theme.ThemeColorScheme.Load ( _
+        "C:\Program Files\Microsoft Office\Document Themes 15\Theme Colors\Office 2007 - 2010.xml" _
+        )
+              
+        ' Call up the routine that actually prints up the PDF
+        Call Export_To_PDF(wb3, PDF_FilePath)
+        
+    Else
+    End If
+
+End With
+
+Application.ScreenUpdating = True
+Application.DisplayAlerts = True
+
+
+End Sub
+
+
+Sub PBook_Sort(wb3 As Workbook)
+' This subroutine's purpose is to sort the pbook in the correct page order needed for publication.
+' The process below is what one could call a "bubble sort" meaning that each page (or bubble) moves
+' to the front of the list based on a system of precedence. The pages "bubble" to the top (i.e. the
+' cream rises) based on a standard list that dictates the correct order.
+
+Dim ws As Worksheet, ws3 As Worksheet
+Dim wb1 As Workbook
+Dim counter As Long, h As Long, i As Long, j As Long, k As Long, lastrow As Long
+
+
+Set wb1 = ThisWorkbook
+Set ws3 = wb3.Sheets("Pages_Key")
+
+lastrow = ws3.Cells(ws3.Rows.Count, 1).End(xlUp).row
+
+' wb3 is the excel file for the current pbook
+With wb3
+
+    ' First find out how many sheets are currently visible and thus need sorting
+    For Each ws In .Sheets
+        If ws.Visible = True Then
+            counter = counter + 1
+        Else
+        End If
+    Next ws
+    
+    ' Move the Title Page to the very front of the list.
+    ' How to find the front? Take the total number of sheets, subtract 1 and from
+    ' that number subtract the count of visible sheets in the workbook. This could
+    ' have been done with literals since there are always five hidden sheets
+    ' at the front of the book (initially) and other pages will be hidden later
+    ' in the process. The variables make this dynamic in case more sheets
+    ' are added.
+    .Sheets("Title Page").Move after:=.Sheets((Sheets.Count - 1) - counter)
+    i = .Sheets("Title Page").Index
+    
+    ' The Bubble Sort: Loop through the sheets and if the sheet is visible and
+    ' not the Title Page (the Title page is already in its correct position) THEN:
+        ' set the variable j equal to the index position of the page name that you
+        ' are trying to bubble (aka p1) within the sorted list on the "Pages_Key"
+        ' worksheet. This will be the position the page (p1) needs to rise to in the sort.
+            ' Then set h equal to the index of the page that is currently before the
+            ' page you are trying to bubble (aka p2). And moving from that page (p2) up
+            ' to the Title page, set k equal to the index position of p2.
+            ' IF the index of p1 is less than the index of p2, move p1 before p2.
+            ' Continue this until you have compared p1 to all sheets currently
+            ' preceding it (all the way up to the Title Page).
+    For Each ws In .Sheets
+        If ws.Visible = True And ws.Name <> "Title Page" Then
+            j = WorksheetFunction.Match(ws.Name, .Sheets("Pages_Key").Range("E3:E" & lastrow), 0)
+            For h = (ws.Index - 1) To i Step -1
+                k = WorksheetFunction.Match(Sheets(h).Name, .Sheets("Pages_Key").Range("E2:E" & lastrow), 0)
+                If j < k Then
+                    ws.Move before:=.Sheets(h)
+                Else
+                End If
+            Next h
+        Else
+        End If
+    Next ws
+End With
+
+wb1.Sheets("Configuration_Details").Copy after:=wb3.Sheets(wb3.Sheets.Count)
+
+End Sub
+
+Sub Export_To_PDF(wb3 As Workbook, PDF_FilePath As String)
+     
+    Dim i As Integer
+     
+    i = wb3.Sheets("Configuration_Details").Index
+    wb3.Sheets(i).Select
+    ActiveWorkbook.ExportAsFixedFormat _
+    Type:=xlTypePDF, _
+    Filename:=PDF_FilePath, _
+    Quality:=xlQualityStandard, IncludeDocProperties:=True, _
+    IgnorePrintAreas:=False, OpenAfterPublish:=False
+     
+End Sub
+
+
