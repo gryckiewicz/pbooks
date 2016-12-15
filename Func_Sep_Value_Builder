@@ -1,0 +1,62 @@
+Option Explicit
+
+Public Function Separate_Values(ByVal InvCodeInput As String) As String()
+' This function is used by the Ad Hoc creator when a user inputs a list of separate values
+' they want to filter by instead of the other three options on the userform. The function
+' returns an array of investor codes.
+
+Dim MyValue As String
+Dim NewValue() As String
+Dim Num_Values As Long
+Dim i As Long
+
+' The InvCodeInput is a string parameter which will contain the output of the "Separate
+' Investor Codes" textbox that the user may choose to use in an Ad Hoc book. As part of the
+' process the value of InvCodeInput is assigned to the MyValue variable. This is because the
+' MyValue variable will have a particular role and needs to be separate from the InvCodeInput.
+InvCodeInput = Replace(InvCodeInput, ", ", ",")
+
+MyValue = InvCodeInput
+
+' The point of this loop is to count the number of commas contained within the string of
+' investor codes the user inputs. The number of commas helps determine how many total
+' investor codes we're going to work with and what size to redimension the array to that will
+' ultimately hold the codes. The variable "Num_Values" is the counter. The "Do While" loop
+' simply continues to chop off codes (and commas) until the  "MyValue" string contains no more
+' commas. Obviously there will be one less comma than the number of codes and so that is taken care
+' of in the next section.
+Do Until IsNumeric(Application.Search(",", MyValue)) = False
+    If IsNumeric(Application.Search(",", MyValue)) Then
+        Num_Values = Num_Values + 1
+        MyValue = Right(MyValue, Len(MyValue) - Application.Search(",", MyValue))
+    End If
+Loop
+    
+' Again, the string of investor codes is assigned again to the "MyValue" variable.
+MyValue = InvCodeInput
+
+' The "NewValue" array is redimensioned to hold the number of investor codes equal to the number
+' of commas (found above) plus one.
+ReDim NewValue(1 To Num_Values + 1)
+
+' This loop moves from the first index position of NewValue array to the last and assigns the
+' positions to the result of the of the first "Left" function you see below. The "Left" function
+' takes the position of the first comma and chops off everything to the left of it (i.e. the
+' investor code). Since the final code will not have a comma attached, the final position of the
+' array is assigned to the rest of "MyValue" after all the rest of the codes were removed (seen
+' in the "Else" statement below.
+For i = 1 To UBound(NewValue)
+    If IsNumeric(Application.Search(",", MyValue)) Then
+        NewValue(i) = Left(MyValue, Application.Search(",", MyValue) - 1)
+        MyValue = Right(MyValue, Len(MyValue) - Application.Search(",", MyValue))
+    Else
+        NewValue(i) = MyValue
+    End If
+Next i
+
+' This last piece assigns the return value of the function (Separate_Values) to NewValue (i.e. copies
+' the array over to what this function returns).
+Separate_Values = NewValue()
+    
+End Function
+
