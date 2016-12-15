@@ -1,0 +1,154 @@
+Option Explicit
+
+Sub ScaleAxes()
+
+Dim Ch As Worksheet
+Dim Pr1, Pr2, Pr3, Pr4, Pr6 As Worksheet
+Dim DecimalArray(1 To 10) As String
+Dim a As Integer
+Dim b As String
+
+Set Ch = ThisWorkbook.Worksheets("Chart Analysis")
+Set Pr1 = ThisWorkbook.Worksheets("Presentation1")
+Set Pr2 = ThisWorkbook.Worksheets("Presentation2")
+Set Pr3 = ThisWorkbook.Worksheets("Presentation3")
+Set Pr4 = ThisWorkbook.Worksheets("Presentation4")
+Set Pr6 = ThisWorkbook.Worksheets("Presentation6")
+
+For a = LBound(DecimalArray) To UBound(DecimalArray)
+    DecimalArray(a) = Ch.Range("O2:O11").Cells(a).Value
+Next a
+
+b = Ch.Range("P4").Value
+
+With Pr1
+    With .ChartObjects(1).Activate
+        With ActiveChart.Axes(xlValue, xlPrimary)
+            If DecimalArray(1) = "Y" Then
+            .TickLabels.NumberFormat = "#,##0.0"
+            Else
+            .TickLabels.NumberFormat = "#,##0"
+            End If
+        End With
+        With ActiveChart.Axes(xlValue, xlSecondary)
+            .MaximumScale = Ch.Range("N2").Value
+            .MinimumScale = Ch.Range("M2").Value
+        End With
+    End With
+    With .ChartObjects(2).Activate
+        With ActiveChart.Axes(xlValue, xlPrimary)
+            If DecimalArray(2) = "Y" Then
+            .TickLabels.NumberFormat = "#,##0.0"
+            Else
+            .TickLabels.NumberFormat = "#,##0"
+            End If
+        End With
+        With ActiveChart.Axes(xlValue, xlSecondary)
+            .MaximumScale = Ch.Range("N3").Value
+            .MinimumScale = Ch.Range("M3").Value
+        End With
+    End With
+End With
+
+With Pr2
+    With .ChartObjects(1).Activate
+        With ActiveChart.Axes(xlValue, xlPrimary)
+            If DecimalArray(3) = "Y" Then
+            .TickLabels.NumberFormat = "#,##0.0"
+            Else
+            .TickLabels.NumberFormat = "#,##0"
+            End If
+        End With
+        With ActiveChart.Axes(xlValue, xlSecondary)
+            .MaximumScale = Ch.Range("N4").Value
+            .MinimumScale = Ch.Range("M4").Value
+            If b = "Y" Then
+            .TickLabels.NumberFormat = "#,##0.0"
+            Else
+            .TickLabels.NumberFormat = "#,##0"
+            End If
+        End With
+    End With
+    With .ChartObjects(2).Activate
+        With ActiveChart.Axes(xlValue, xlPrimary)
+            If DecimalArray(4) = "Y" Then
+            .TickLabels.NumberFormat = "#,##0.0"
+            Else
+            .TickLabels.NumberFormat = "#,##0"
+            End If
+        End With
+        With ActiveChart.Axes(xlValue, xlSecondary)
+            .MaximumScale = Ch.Range("N5").Value
+            .MinimumScale = Ch.Range("M5").Value
+        End With
+    End With
+
+End With
+
+With Pr3
+    With .ChartObjects(1).Activate
+        With ActiveChart.Axes(xlValue, xlSecondary)
+            .MaximumScale = Ch.Range("N6").Value
+            .MinimumScale = Ch.Range("M6").Value
+        End With
+    End With
+    With .ChartObjects(3).Activate
+        With ActiveChart.Axes(xlValue, xlPrimary)
+            If DecimalArray(6) = "Y" Then
+            .TickLabels.NumberFormat = "#,##0.0"
+            Else
+            .TickLabels.NumberFormat = "#,##0"
+            End If
+        End With
+    End With
+End With
+
+With Pr4
+    With .ChartObjects(2).Activate
+        With ActiveChart.Axes(xlValue, xlPrimary)
+            If DecimalArray(7) = "Y" Then
+            .TickLabels.NumberFormat = "#,##0.0"
+            Else
+            .TickLabels.NumberFormat = "#,##0"
+            End If
+        End With
+    End With
+    With .ChartObjects(3).Activate
+        With ActiveChart.Axes(xlValue, xlPrimary)
+            If DecimalArray(8) = "Y" Then
+            .TickLabels.NumberFormat = "#,##0.0"
+            Else
+            .TickLabels.NumberFormat = "#,##0"
+            End If
+        End With
+    End With
+
+End With
+
+With Pr6
+    With .ChartObjects(1).Activate
+        With ActiveChart.Axes(xlValue, xlPrimary)
+            If DecimalArray(9) = "Y" Then
+            .TickLabels.NumberFormat = "#,##0.0"
+            Else
+            .TickLabels.NumberFormat = "#,##0"
+            End If
+        End With
+    End With
+    With .ChartObjects(2).Activate
+        With ActiveChart.Axes(xlValue, xlPrimary)
+            If DecimalArray(10) = "Y" Then
+            .TickLabels.NumberFormat = "#,##0.0"
+            Else
+            .TickLabels.NumberFormat = "#,##0"
+            End If
+        End With
+        With ActiveChart.Axes(xlValue, xlSecondary)
+            .MaximumScale = Ch.Range("N11").Value
+            .MinimumScale = Ch.Range("M11").Value
+        End With
+    End With
+End With
+
+End Sub
+
