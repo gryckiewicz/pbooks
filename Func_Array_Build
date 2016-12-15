@@ -1,0 +1,87 @@
+Option Explicit
+
+Public Function Array_Builder(ByVal ArrayType As Integer, Optional ByVal Deal As String, Optional ByVal Mo1 As String, Optional ByVal Mo2 As String) As String()
+' This function is used to build and return an array of Investor Codes (InvCodeArray) or an array of boarding months (Boarding Month Array)
+' that are then used in various ways throughout the process. It is used in the standard process and the adhoc process ONLY
+' if the Investor Code input type is the "Deal Name" variety. The functions "Func_Array_Range" and "Func_Sep_Value_Builder"
+' are used if the ad hoc inputs are for the other two types. This function returns an array of either investor codes or boarding months
+
+Dim wb1 As Workbook
+Dim ws1 As Worksheet
+Dim size As Long, i As Long, j As Long
+Dim dt1 As Long, dt2 As Long
+Dim tempArray() As String
+Dim SheetString As String, RangeString As String
+
+Set wb1 = ThisWorkbook
+
+' This section takes the ArrayType input and uses it to determine what type of array to build and where to get the components
+' for the build. "1" is for a basic array of investor codes. "2" is for an array of investor_block combos. "3" is for boarding
+' months. The "SheetString" is used to determine which worksheet will be used for obtaining the values. The "RangeString"
+' is used as the Named Range (see Formulas ribbon -> Name Manager for more info) and it is either 1) the "Deal" variable that
+' contains the Deal_Level_Name or 2) the string "Month1" which will be the named ranged assigned to the specific range we construct
+' later. We'll discuss the "size" and "j" variables below.
+If ArrayType = 1 Then
+    SheetString = "Investor_Codes"
+    RangeString = Deal
+    j = 1
+    size = WorksheetFunction.CountIf(wb1.Worksheets(SheetString).Range(RangeString), ">1")
+ElseIf ArrayType = 2 Then
+    SheetString = "Investor_Codes"
+    RangeString = Deal
+    j = 1
+    size = WorksheetFunction.CountA(wb1.Worksheets(SheetString).Range(RangeString)) - 1
+ElseIf ArrayType = 3 Then
+    SheetString = "Boarding_Months"
+    RangeString = "Month1"
+    j = 0
+    
+' We'll jump in here to explain how the boarding month array build operates because it is a little different from the Investor
+' code string operation. If the ArrayType is "3" and this function is being used to return an array of boarding months, then
+' on the "Boarding_Months" sheet range "D2" will have the put the starting month and "D3" will have the ending month. In ranges
+' "E2" and "E3" are MATCH functions that find the relative position of these two months in the long list of all possible months.
+    Set ws1 = wb1.Sheets(SheetString)
+    ws1.Range("D2").Value = Mo1
+    ws1.Range("D3").Value = Mo2
+    
+    dt1 = ws1.Range("E2").Value
+    dt2 = ws1.Range("E3").Value
+    
+' Below, we take the results of the MATCH functions in "E2" and "E3" and we use them to create a new named range called "Month1"
+' that is defined between the starting month and ending months that were inputted.
+    wb1.Names.Add Name:="Month1", RefersTo:=ws1.Range(Cells(dt1, 1).Address, Cells(dt2, 1).Address)
+    size = WorksheetFunction.CountIf(wb1.Worksheets(SheetString).Range(RangeString), ">1")
+Else
+End If
+
+' Here's a little error handling in the unlikely but possible case that the deal level name for a book doesn't contain any
+' investor codes. This can happen if the deal level name changed in the deal names table but the name wasn't updated in the
+' Deal_Names worksheet. If this error occurs, the array returned is dimensioned to a length of one and the string seen below
+' is assigned to the array.
+If size = 0 Then
+    ReDim tempArray(1 To 1)
+    tempArray(1) = "error:no_codes"
+Else
+    ' Here's where the "size" variable comes in. The "size" variable simply contains a number that represents the number of individual
+    ' entries that we need in our array of either Investor Codes or Boarding Months. In the ArrayType = 2 option above, a CountA function
+    ' is used because the Block_Combos values are all strings. Below, we use the result of that function to redimension the temporary
+    ' array (TempArray) to be the size needed to fit all the codes or months.
+    ReDim tempArray(1 To size)
+    
+    ' This code fills up the tempArray with each of the values contained in the Named Range that has been pre-built (in case of Inv Codes)
+    ' or the Named Range that was built previous in this routine (in case of Boarding Months). The "j" variable is used simply to offset
+    ' starting spot for loading up the values into the array. For the Investor Code array, the named range contains the Deal Level Name
+    ' that is used as a header for the range (see "Deal_Names" worksheet for details). Because of that, we need to skip that header when
+    ' loading up the array. The boarding month array does not contain any header and thus "j" = 0.
+    For i = 1 To size
+        j = j + 1
+        tempArray(i) = wb1.Worksheets(SheetString).Range(RangeString).Cells(j).Value
+    Next i
+End If
+
+' This final piece copies the contents of the temporary array to the array that is returned by this function.
+Array_Builder = tempArray()
+
+End Function
+
+
