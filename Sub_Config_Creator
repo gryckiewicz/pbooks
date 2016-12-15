@@ -1,0 +1,65 @@
+Option Explicit
+
+Sub Config_Page(ByVal wb1 As Workbook, ByVal ReportName As String, ByVal ReportDate As String, _
+                ByVal InvType As Integer, ByVal DealName As String, ByVal lien As Integer, _
+                ByVal Board1 As String, ByVal Board2 As String, ByVal DelinqType As String, _
+                ByVal InvCodeStr As String)
+' The purpose of this subroutine is to provide details to the Configuration page that is inclueded
+' as the last page in each performance book. The subroutine accepts a variety of parameters (above)
+' and uses the inputs to determine what to display on the page for that book (below). The code is
+' very straightforward and the statements are all very simple. Definitions for variables such as
+' InvCodeStr can be found in the PBook_Standard or PBook_AdHoc subroutines.
+
+Dim ws3 As Worksheet
+
+Set ws3 = wb1.Sheets("Configuration_Details")
+
+With ws3
+    .Range("B3").Value = ReportName
+    .Range("B4").Value = ReportDate
+    .Range("B4").HorizontalAlignment = xlLeft
+    
+    If InvType <> 1 Then
+        .Range("B5").Value = "Not Applicable"
+    Else
+        .Range("B5").Value = DealName
+    End If
+    If lien = 1 Then
+        .Range("B6").Value = "1st Liens Only"
+    ElseIf lien = 2 Then
+        .Range("B6").Value = "2nd or Higher Liens Only"
+    Else
+        .Range("B6").Value = "All Lien Positions"
+    End If
+    
+    If Board1 = "1" Then
+        .Range("B7").Value = "All Boardings"
+    Else
+        .Range("B7").Value = Board1
+    End If
+    
+    .Range("B7").HorizontalAlignment = xlLeft
+    
+    If Board2 = "1" Then
+        .Range("B8").Value = "All Boardings"
+    Else
+        .Range("B8").Value = Board2
+    End If
+    
+    .Range("B10").Value = DelinqType
+    
+    .Range("B8").HorizontalAlignment = xlLeft
+    
+    .Range("B9").Value = Now
+    .Range("B9").HorizontalAlignment = xlLeft
+    
+    .Columns("B:B").EntireColumn.AutoFit
+    
+    .Range("B12").Value = InvCodeStr
+    .Range("B12").HorizontalAlignment = xlLeft
+    .Range("B12").VerticalAlignment = xlTop
+    .Range("B12").WrapText = True
+    
+End With
+
+End Sub
