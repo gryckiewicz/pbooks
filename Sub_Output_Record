@@ -1,0 +1,96 @@
+Option Explicit
+
+Sub Output_Record(ByVal pbook As String, ByVal BeginTime As Date, ByVal EndTime As Date, ByVal InvCount As Long, ByVal MonCount As Long, ByVal Filter_Time As String, _
+            wb3 As Workbook)
+' The purpose of this subroutine is to populate the "Final_Output_Record" at the end of each performance book loop
+' in the PBook_Standard subroutine. The parameters are just all the necessary inputs for displaying the results of
+' the pbook process for the particular book.
+
+Dim wb1 As Workbook
+Dim ws1 As Worksheet
+Dim time As Long, time2 As Long, time3 As Long
+Dim timeStr As String
+Dim row As Long
+Dim rowct As Long
+Dim InvStr As String
+Dim MonStr As String
+Dim rng As Range
+Dim ValidArray() As String
+Dim ValidString, ErrorString As String
+
+
+Set wb1 = ThisWorkbook
+Set ws1 = wb1.Sheets("Final_Output_Record")
+
+' below uses a series of functions to find out the timespan of the process in minutes and seconds and format it
+' as such.
+time = DateDiff("s", BeginTime, EndTime)
+time2 = Int(time / 60)
+time3 = time - (time2 * 60)
+timeStr = time2 & " Mins, " & time3 & " Secs"
+
+' this finds the relative position of the performance book name in the available list.
+row = WorksheetFunction.Match(pbook, ws1.Range("A3:A200"), 0)
+
+' we add two to the resutlt of the match function above because of the two rows used for the header information.
+row = row + 2
+
+' all of the code below simply takes inputs from above and determines what to depict in the
+' output report
+If MonCount = 0 Then
+    MonStr = "All Months"
+Else
+    MonStr = MonCount
+End If
+
+If InvCount = 0 Then
+    InvStr = "All Codes"
+ElseIf InvCount = 9999 Then
+    InvStr = "Error: No Codes"
+Else
+    InvStr = InvCount
+End If
+
+' ValidArray is an array that will hold the results of the Validator function (please see Validator function for
+' details.
+If InvCount <> 9999 Then
+    ValidArray = Validator(wb3)
+Else
+    ReDim ValidArray(1 To 2)
+    ValidArray(1) = ""
+    ValidArray(2) = ""
+End If
+
+' The code below takes the results of the array returned by Validator and uses the outputs to determine
+' what to put on the output record.
+If ValidArray(1) = "True" Then
+    ValidString = "Yes"
+Else
+    ValidString = "No"
+End If
+
+If ValidArray(2) <> "" Then
+    ErrorString = ValidArray(2) & ", " & ValidArray(3)
+Else
+    ErrorString = ""
+End If
+
+
+ws1.Range("B" & row).Value = timeStr
+ws1.Range("C" & row).Value = InvStr
+ws1.Range("D" & row).Value = MonStr
+ws1.Range("E" & row).Value = Filter_Time
+ws1.Range("F" & row).Value = ValidString
+ws1.Range("G" & row).Value = ErrorString
+
+' This loops through each of the cells of the range below and makes sure the alignment is on the right side
+' of the cell.
+
+With ws1
+    rowct = .Cells(ws1.Rows.Count, 1).End(xlUp).row
+    For Each rng In .Range("B3:G" & rowct)
+        rng.HorizontalAlignment = xlRight
+    Next rng
+End With
+
+End Sub
