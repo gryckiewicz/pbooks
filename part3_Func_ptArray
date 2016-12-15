@@ -1,0 +1,26 @@
+Option Explicit
+
+Public Function ptArray() As Long()
+
+Dim ptsheets(1 To 8, 1 To 2) As Long
+
+ptsheets(1, 1) = 1
+ptsheets(1, 2) = 1
+ptsheets(2, 1) = 2
+ptsheets(2, 2) = 1
+ptsheets(3, 1) = 3
+ptsheets(3, 2) = 1
+ptsheets(4, 1) = 4
+ptsheets(4, 2) = 1
+ptsheets(5, 1) = 5
+ptsheets(5, 2) = 1
+ptsheets(6, 1) = 6
+ptsheets(6, 2) = 1
+ptsheets(7, 1) = 7
+ptsheets(7, 2) = 1
+ptsheets(8, 1) = 8
+ptsheets(8, 2) = 1
+
+ptArray = ptsheets()
+
+End Function
