@@ -1,0 +1,89 @@
+Option Explicit
+
+Sub Date_Input(ByVal dt As String)
+
+Dim ws1 As Worksheet
+Dim ws2 As Worksheet
+Dim ws3 As Worksheet
+Dim ws4 As Worksheet
+Dim ws5 As Worksheet
+Dim wb1 As Workbook
+Dim pt As PivotTable
+
+Set wb1 = ThisWorkbook
+
+Set ws1 = wb1.Sheets("Pres7_statePivot")
+Set ws2 = wb1.Sheets("Pres7_ProjPivot")
+Set ws3 = wb1.Sheets("Pres8_Pivot")
+Set ws4 = wb1.Sheets("Pres9_Pivot")
+Set ws5 = wb1.Sheets("Pres10_Pivot")
+
+
+With ws1
+    .PivotTables("PivotTable2").PivotFields("runDate").CurrentPage = dt
+    .PivotTables("PivotTable3").PivotFields("runDate").CurrentPage = dt
+End With
+
+'With ws2
+'    .PivotTables("PivotTable4").PivotFields("runDate").CurrentPage = dt
+'End With
+
+With ws3
+    .PivotTables("PivotTable2").PivotFields("archive_date").CurrentPage = dt
+    .PivotTables("PivotTable3").PivotFields("archive_date").CurrentPage = dt
+End With
+
+With ws4
+    .PivotTables("PivotTable2").PivotFields("reportDate").CurrentPage = dt
+    .PivotTables("PivotTable3").PivotFields("reportDate").CurrentPage = dt
+End With
+
+With ws5
+    .PivotTables("PivotTable2").PivotFields("runDate").CurrentPage = dt
+End With
+
+End Sub
+
+Sub Pivot_Sort()
+
+Dim wb1 As Workbook
+Dim ws3 As Worksheet
+Dim ws5 As Worksheet
+Dim a As Long
+
+Set wb1 = ThisWorkbook
+
+Set ws3 = wb1.Sheets("Pres8_Pivot")
+Set ws5 = wb1.Sheets("Pres10_Pivot")
+
+With ws3
+    .PivotTables("PivotTable1").PivotFields("archive_date") _
+        .ClearManualFilter
+    .PivotTables("PivotTable1").PivotFields("archive_date") _
+        .PivotItems("(blank)").Visible = False
+    a = .PivotTables("PivotTable1").PivotColumnAxis.PivotLines.Count - 1
+    If a > 0 Then
+        .PivotTables("PivotTable1").PivotFields("REASON_FOR_NO_REFERRAL").AutoSort _
+            xlDescending, "Sum of loan_count", .PivotTables("PivotTable1"). _
+            PivotColumnAxis.PivotLines(a), 1
+    Else
+    End If
+End With
+
+With ws5
+    .PivotTables("PivotTable1").PivotFields("runDate") _
+        .ClearManualFilter
+    .PivotTables("PivotTable1").PivotFields("runDate") _
+        .PivotItems("(blank)").Visible = False
+    a = .PivotTables("PivotTable1").PivotColumnAxis.PivotLines.Count - 1
+    If a > 0 Then
+        .PivotTables("PivotTable1").PivotFields("foreclosureHoldDescription").AutoSort _
+            xlDescending, "Sum of loanCount", .PivotTables("PivotTable1"). _
+            PivotColumnAxis.PivotLines(a), 1
+    Else
+    End If
+End With
+
+End Sub
+
+
