@@ -1,0 +1,173 @@
+Option Explicit
+
+Sub NewBook_Create(ByVal bookName As String, ByVal codeList As String, ByVal investorType As Long, _
+                    ByVal lien As String, ByVal dateType As Long, ByVal boardingStart As String, ByVal boardingEnd As String, _
+                    ByVal excludePages As String, ByVal excludePageNums As String, ByVal clientFolder As String, ByVal delinq As String)
+
+Dim wb As Workbook
+Dim wsBooks As Worksheet
+Dim answer As Long, answer2 As Long
+Dim lastrow As Long
+Dim boolTmp As Boolean
+Dim boolTmp2 As Boolean
+Dim i As Long
+Dim firstOpenRow As Long
+Dim currBookRow As Long
+Dim bookNameOld As String, codeListOld As String, LienOld As String, boardingStartOld As String, boardingEndOld As String
+Dim delinqOld As String, excludePageNumsOld As String, clientFolderOld As String
+
+Set wb = ThisWorkbook
+Set wsBooks = wb.Sheets("Standard_Books")
+
+wsBooks.Activate
+
+firstOpenRow = 0
+
+answer = MsgBox("Just to review, here are the parameters you've selected for a new, recurring Performance Book: " _
+& vbNewLine & vbNewLine & _
+"Book Name: " & bookName & vbNewLine & _
+"Code List: " & codeList & vbNewLine & _
+"Lien Position: " & lien & vbNewLine & _
+"Boarding Dates from: " & boardingStart & " to: " & boardingEnd & vbNewLine & _
+"Delinquency Type: " & delinq & vbNewLine & _
+"Excluding Pages: " & excludePages & vbNewLine & vbNewLine & _
+"Client Folder: " & clientFolder & vbNewLine & vbNewLine & _
+"Do you wish to proceed?", vbYesNo, "Performance Book Details")
+
+If answer = vbNo Then
+    Exit Sub
+Else
+End If
+
+With wsBooks
+    lastrow = .Cells(wsBooks.Rows.Count, 1).End(xlUp).row
+End With
+
+boolTmp2 = False
+For i = 2 To lastrow
+    If wsBooks.Cells(i, 1).Value = bookName Then
+        boolTmp2 = True
+        currBookRow = wsBooks.Cells(i, 1).row
+    Else
+    End If
+Next i
+
+With wsBooks
+    If boolTmp2 Then
+        bookNameOld = .Cells(currBookRow, 1).Value
+        codeListOld = .Cells(currBookRow, 2).Value
+        If .Cells(currBookRow, 4).Value = 3 Then
+            LienOld = "All Liens"
+        Else
+            LienOld = .Cells(currBookRow, 4).Value
+        End If
+        If .Cells(currBookRow, 5).Value = 1 Then
+            boardingStartOld = "All Dates"
+        Else
+            boardingStartOld = .Cells(currBookRow, 5).Value
+        End If
+        If .Cells(currBookRow, 6).Value = 1 Then
+            boardingEndOld = "All Dates"
+        Else
+            boardingEndOld = .Cells(currBookRow, 6).Value
+        End If
+        delinqOld = .Cells(currBookRow, 9).Value
+        excludePageNumsOld = .Cells(currBookRow, 10).Value
+        clientFolderOld = .Cells(currBookRow, 11).Value
+        
+        answer2 = MsgBox("**CAUTION**" & vbNewLine & "Another recurring Performance Book has been found with the same Book Name and the following parameters: " _
+        & vbNewLine & vbNewLine & _
+        "Book Name: " & bookNameOld & vbNewLine & _
+        "Code List: " & codeListOld & vbNewLine & _
+        "Lien Position: " & LienOld & vbNewLine & _
+        "Boarding Dates from: " & boardingStartOld & " to: " & boardingEndOld & vbNewLine & _
+        "Delinquency Type: " & delinqOld & vbNewLine & _
+        "Excluding Pages: " & excludePageNumsOld & vbNewLine & vbNewLine & _
+        "Client Folder: " & clientFolderOld & vbNewLine & vbNewLine & _
+        "Do you wish to proceed and overwrite this book?", vbYesNo, "Performance Book Details")
+        
+        If answer2 = vbNo Then
+            Exit Sub
+        Else
+        firstOpenRow = currBookRow
+        End If
+    Else
+    End If
+End With
+
+
+If lien = "All Liens" Then
+    lien = 3
+Else
+End If
+
+If boardingStart = "All Dates" Then
+    boardingStart = 1
+Else
+End If
+
+If boardingEnd = "All Dates" Then
+    boardingEnd = 1
+Else
+End If
+
+If firstOpenRow = 0 Then
+    i = 2
+    Do Until firstOpenRow <> 0
+        If wsBooks.Cells(i, 1).Value = "" Then
+            firstOpenRow = wsBooks.Cells(i, 1).row
+        Else
+            i = i + 1
+        End If
+    Loop
+Else
+End If
+
+With wsBooks
+    .Cells(firstOpenRow, 1).Value = bookName
+    .Cells(firstOpenRow, 2).Value = codeList
+    .Cells(firstOpenRow, 3).Value = investorType
+    .Cells(firstOpenRow, 4).Value = lien
+    .Cells(firstOpenRow, 5).Value = boardingStart
+        If Not IsDate(boardingStart) Then
+            .Cells(firstOpenRow, 5).NumberFormat = "General"
+        Else
+        End If
+    .Cells(firstOpenRow, 6).Value = boardingEnd
+        If Not IsDate(boardingEnd) Then
+            .Cells(firstOpenRow, 6).NumberFormat = "General"
+        Else
+        End If
+    .Cells(firstOpenRow, 7).Value = dateType
+    .Cells(firstOpenRow, 8).Value = "=Sheet1!$F$3"
+    .Cells(firstOpenRow, 9).Value = delinq
+    .Cells(firstOpenRow, 10).Value = excludePageNums
+    .Cells(firstOpenRow, 10).HorizontalAlignment = xlRight
+    .Cells(firstOpenRow, 11).Value = clientFolder
+End With
+
+With wsBooks
+    lastrow = .Cells(wsBooks.Rows.Count, 1).End(xlUp).row
+    .Range("A3:K" & lastrow).Sort Key1:=wsBooks.Cells(3, 1), Order1:=xlAscending, Header:=xlNo, OrderCustom:=1, MatchCase:=False, DataOption1:=xlSortNormal
+    lastrow = .Cells(wsBooks.Rows.Count, 1).End(xlUp).row
+End With
+
+boolTmp2 = False
+For i = 2 To lastrow
+    If wsBooks.Cells(i, 1).Value = bookName Then
+        boolTmp2 = True
+    Else
+    End If
+Next i
+
+If boolTmp2 Then
+    MsgBox "The book " & "'" & bookName & "'" & " has been successfully added"
+    UserForm1.ListBox1.RowSource = "Standard_Books!A3:C" & lastrow
+    DeleteBook_Form.ListBox1.RowSource = "Standard_Books!A3:C" & lastrow
+Else
+    MsgBox "The book " & "'" & bookName & "'" & " has NOT been successfully added."
+    Stop
+End If
+
+
+End Sub
