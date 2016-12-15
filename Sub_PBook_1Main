@@ -1,0 +1,53 @@
+Option Explicit
+
+Sub PBook_Main()
+' This subroutine is the starting point of each performance book process. It uses the output of the userform to
+' determine which performance book to create and then calls up the appropriate subroutine.
+
+Dim BookType As String
+Dim i As Long, j As Long, k As Long
+Dim fpth As String, fpth2 As String
+
+
+With UserForm1
+' This section is a loop to determine if any of the items in the list box were selected by the user. If so,
+' the "j" variable gets incremented.
+    j = 0
+    
+    For i = 0 To .ListBox1.ListCount - 1
+        If .ListBox1.Selected(i) = True Then
+            j = j + 1
+        Else
+        End If
+    Next i
+        
+' This checks a variety of controls on the AdHoc side of the Userform to see if a user selected any of the
+' investor code options. If so, then the user wants to create an AdHoc type book. ElseIf the user either
+' selected "All Books" from the standard side of the form or "j" is greater than zero, this means the user
+' wants to create a Standard book. There are other ways of determining this, but this works well.
+    If .TextBox1.Value <> "" Or .TextBox5.Value <> "" Or .ComboBox2.Value <> "Select" Or .CheckBox8.Value = True Then
+        BookType = "AdHoc"
+    ElseIf .CheckBox1.Value = True Or j > 0 Then
+        BookType = "Standard"
+    Else
+        MsgBox "You Need to Select a Standard Book or Input Investor Codes in a Custom Book"
+        Exit Sub
+    End If
+End With
+
+fpth = "\\cifprd04\Analytics\Analytic Reporting\09. Business Units\Analytics\Performance Books\Completed Books\"
+fpth2 = "\\cifprd04\Analytics\Analytic Reporting\09. Business Units\Analytics\Performance Books\Creation Tools\"
+
+k = Application.SheetsInNewWorkbook
+Application.SheetsInNewWorkbook = 1
+If BookType = "AdHoc" Then
+    Call PBook_AdHoc(fpth, fpth2)
+ElseIf BookType = "Standard" Then
+    Call PBook_Standard(fpth, fpth2)
+Else
+End If
+Application.SheetsInNewWorkbook = k
+
+End Sub
+
+    
