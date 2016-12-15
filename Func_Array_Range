@@ -1,0 +1,65 @@
+Option Explicit
+
+Public Function Array_Range(ByVal RangeLow As Integer, ByVal RangeHigh As Integer) As String()
+' This function returns an array of Investor Codes and is used in the Ad Hoc creator when a user
+' inputs simply a range of codes to use for filtering the performance books. The inputs of that
+' this function receives are the lower and upper ranges of the investor code list. The function
+' returns an array of investor codes.
+
+Dim i As Long, j As Long, counter As Long
+Dim wb As Workbook
+Dim ws As Worksheet
+Dim CodeArray() As String
+
+Set wb = ThisWorkbook
+Set ws = wb.Sheets("Active_Codes")
+
+'Workbooks("PerformanceBooks.xlsm").Connections(2).Refresh
+ws.ListObjects("Table_sqlprd13").Refresh
+
+counter = 0
+j = 1
+
+' This loop moves through each integer from the low end of the range to the upper end of the range
+' For each integer, it uses the Excel "Match" function to find the location of the integer in the
+' list of all possible investor codes. The purpose of this "Match" function isn't really to return
+' the matching value, it is only to see if there's an error when attempting to find the Match. If
+' there isn't an error (meaning the integer is a valid/possible investor code, it increments up the
+' counter. This portion simply determines how many positions to redimension the array for to hold
+' the appropriate number of valid investor codes between both ends of the range which the user
+' inputted.
+
+For i = RangeLow To RangeHigh
+    If Not (IsError(Application.Match(i, ws.Range("A1:A10000"), 0))) Then
+        counter = counter + 1
+    Else
+    End If
+Next i
+
+' This redimensions the array for the reason mentioned above
+
+ReDim CodeArray(1 To counter)
+
+' This loop moves through each integer of the inputted range for a second time and again tests
+' whether the integer is a possible/valid investor code. This time, if it is a valid code, it
+' assigns the integer to the next available position in the array called "codearray." After assigning,
+' it increments the array index (j) up by one.
+
+' **you might wonder why we looped through the integers of the range twice. The reason was because we can't
+' **redimension the array on each pass of the loop. Therefore, we have to loop once to determine the size
+' **of the array and then a second time to actually load up the values.
+
+For i = RangeLow To RangeHigh
+    If Not (IsError(Application.Match(i, ws.Range("A1:A10000"), 0))) Then
+        CodeArray(j) = i
+        j = j + 1
+    Else
+    End If
+Next i
+
+' This last piece assigns the return value of the function (Array_Range) to the codearray (i.e. copies
+' the array over to what this function returns).
+
+Array_Range = CodeArray()
+
+End Function
