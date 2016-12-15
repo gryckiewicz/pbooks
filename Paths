@@ -1,0 +1,14 @@
+Option Explicit
+
+Sub paths()
+
+fpth = "\\cifprd04\Analytics\Analytic Reporting\09. Business Units\Analytics\Performance Books\test\"
+fpth2 = "\\denlslsfile03\Desktop\agryckiewicz\Performance Book Rebuild\"
+
+fpth2 = "\\cifprd04\Analytics\Analytic Reporting\09. Business Units\Analytics\Performance Books\Creation Tools\"
+
+
+
+End Sub
+
+
