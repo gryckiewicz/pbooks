@@ -1,0 +1,101 @@
+Sub Delete_Book(ByVal bookName As String)
+
+Dim answer2 As Long
+Dim wb As Workbook
+Dim wsBooks As Worksheet
+Dim lastrow As Long
+Dim i As Long, j As Long
+Dim tmpBool  As Boolean
+Dim currBookRow As Long
+Dim bookNameOld As String, codeListOld As String, LienOld As String, boardingStartOld As String, boardingEndOld As String
+Dim delinqOld As String, excludePageNumsOld As String, clientFolderOld As String
+
+Set wb = ThisWorkbook
+Set wsBooks = wb.Sheets("Standard_Books")
+
+i = 0
+j = 2
+tmpBool = False
+
+With wsBooks
+    lastrow = .Cells(wsBooks.Rows.Count, 1).End(xlUp).row
+    
+    Do Until i > 0 Or j > lastrow
+        If .Cells(j, 1).Value = bookName Then
+            currBookRow = .Cells(j, 1).row
+            i = i + 1
+        Else
+            j = j + 1
+        End If
+    Loop
+End With
+    
+If i > 0 Then
+    With wsBooks
+        bookNameOld = .Cells(currBookRow, 1).Value
+        codeListOld = .Cells(currBookRow, 2).Value
+        If .Cells(currBookRow, 4).Value = 3 Then
+            LienOld = "All Liens"
+        Else
+            LienOld = .Cells(currBookRow, 4).Value
+        End If
+        If .Cells(currBookRow, 5).Value = 1 Then
+            boardingStartOld = "All Dates"
+        Else
+            boardingStartOld = .Cells(currBookRow, 5).Value
+        End If
+        If .Cells(currBookRow, 6).Value = 1 Then
+            boardingEndOld = "All Dates"
+        Else
+            boardingEndOld = .Cells(currBookRow, 6).Value
+        End If
+        delinqOld = .Cells(currBookRow, 9).Value
+        excludePageNumsOld = .Cells(currBookRow, 10).Value
+        clientFolderOld = .Cells(currBookRow, 11).Value
+        
+        answer2 = MsgBox("Are you sure you want to delete the book with the following parameters?" _
+        & vbNewLine & vbNewLine & _
+        "Book Name: " & bookNameOld & vbNewLine & _
+        "Code List: " & codeListOld & vbNewLine & _
+        "Lien Position: " & LienOld & vbNewLine & _
+        "Boarding Dates from: " & boardingStartOld & " to: " & boardingEndOld & vbNewLine & _
+        "Delinquency Type: " & delinqOld & vbNewLine & _
+        "Excluding Pages: " & excludePageNumsOld & vbNewLine & vbNewLine & _
+        "Client Folder: " & clientFolderOld & vbNewLine & vbNewLine & _
+        "Do you wish to proceed and delete this book?", vbYesNo, "Performance Book Details")
+        
+        If answer2 = vbNo Then
+            Exit Sub
+        ElseIf answer2 = vbYes Then
+            .Range("A" & currBookRow & ":K" & currBookRow).Clear
+            lastrow = .Cells(wsBooks.Rows.Count, 1).End(xlUp).row
+            .Range("A3:K" & lastrow).Sort Key1:=wsBooks.Cells(3, 1), Order1:=xlAscending, Header:=xlNo, OrderCustom:=1, MatchCase:=False, DataOption1:=xlSortNormal
+            lastrow = .Cells(wsBooks.Rows.Count, 1).End(xlUp).row
+        Else
+        End If
+    End With
+Else
+    MsgBox "The list was not found"
+    Exit Sub
+End If
+
+j = 2
+tmpBool = False
+    Do Until tmpBool Or j > lastrow
+        If wsBooks.Cells(j, 1).Value = bookName Then
+            tmpBool = True
+        Else
+            j = j + 1
+        End If
+    Loop
+    
+If tmpBool = False Then
+    MsgBox "The book " & "'" & bookName & "'" & " has been successfully deleted."
+        UserForm1.ListBox1.RowSource = "Standard_Books!A3:C" & lastrow
+        DeleteBook_Form.ListBox1.RowSource = "Standard_Books!A3:C" & lastrow
+Else
+    MsgBox "The list " & "'" & ListName & "'" & " has NOT been successfully deleted."
+    Stop
+End If
+
+End Sub
