@@ -1,0 +1,527 @@
+Option Explicit
+
+Sub PBook_Standard(ByVal fpth As String, ByVal fpth2 As String)
+' This subroutine runs the process for a standard book or list of books. For those unfamiliar with VBA, all
+' of the statements directly below this are meant for declaring variables. This routine has a lot of variables
+' because it is looped through for each performance book (pbook) that is created.
+
+Dim fso
+Dim fpth3 As String, fpth4 As String, fld As String, fld2 As String
+Dim wb1 As Workbook, wb2 As Workbook, wb3 As Workbook
+Dim ws1 As Worksheet, ws2 As Worksheet, ws3 As Worksheet, ws4 As Worksheet
+Dim counter As Long, lastrow As Long, i As Long, j As Long, k As Long, time As Long, totaltime As Long
+Dim c As Characters
+Dim size As Integer
+Dim a As Integer
+Dim dt1 As String, dt2 As String, dt3 As String
+Dim wbstr As String, wbstr1 As String, wbstr2 As String, wbstr3 As String
+Dim wbArray(1 To 3) As String
+Dim DelinqArray(1 To 2) As String
+Dim pbArray() As Variant
+Dim listArray() As String
+Dim posArray() As Integer
+Dim InvCodeArray() As String
+Dim BoardMonthArray() As String
+Dim PageArray() As String
+Dim tempArray() As String
+Dim InvCodeStr As String
+Dim blTmp As Boolean
+Dim Filename As String, PDF_FilePath As String, filePathExcel As String
+Dim MyTimer As Double
+Dim Excel_Name As String, PDF_Name As String
+Dim BeginTime As Date, EndTime As Date
+Dim T1 As Date, T2 As Date
+Dim Filter_Time As String
+Dim errBool  As Boolean, copyBool As Boolean, refreshBool As Boolean
+
+' The fso variable is a file system object and has to be set to a new object using the
+' create object statement below
+Set fso = CreateObject("Scripting.FileSystemObject")
+
+' Each of these workbook/worksheet objects must also be set to an actual object
+' before they are used anywhere
+Set wb1 = ThisWorkbook
+Set ws1 = wb1.Sheets("Sheet1")
+Set ws2 = wb1.Sheets("Standard_Books")
+Set ws3 = wb1.Sheets("Pages_Key")
+Set ws4 = wb1.Sheets("Final_Output_Record")
+
+' Here we turn off automatic calculations if they are on, in order to speed up the
+' process some.
+Application.Calculation = xlCalculationAutomatic
+
+' each of these are value type variables that can simply be assigned to a value
+' as seen below. Each of these is to move between the various pbook parts.
+' They require a part of the "DelinqArray" below attached to actually represent
+' the pbook template file names.
+wbstr1 = "Performance_Books_Part1_"
+wbstr2 = "Performance_Books_Part2_"
+wbstr3 = "Performance_Books_Part3_"
+
+' This loads up an array with each of the pbook names in order to make the templates
+' easier to work with in the loops below.
+wbArray(1) = wbstr1
+wbArray(2) = wbstr2
+wbArray(3) = wbstr3
+
+' This loads up an array with the two delinquency types. These will be used interchangeably
+' to attach onto the various wbstr variables (above) to create the pbook template file names
+' we need for calling up the various files
+DelinqArray(1) = "MBA"
+DelinqArray(2) = "OTS"
+
+' These formulas just create the various date strings that will be needed later on for folder
+' and file names
+dt1 = Format(Date, "d mmm yy")
+dt2 = Year(WorksheetFunction.EoMonth(Date, -1)) & "_" & MonthName(Month(WorksheetFunction.EoMonth(Date, -1)), True)
+dt3 = Format(WorksheetFunction.EoMonth(Date, -1), "mmm_yyyy")
+
+' These strings are being set to variables just for ease of use (i.e. shorter name for a long string)
+fpth3 = fpth & dt2 & "\"
+
+          
+' This comment will explain what is contained between the "With UserForm1" block below. The purpose
+' of this section is to put the pbook names into a range on "Sheet1" of the workbook in order to
+' then run through each of those books listed and create a pbook for each. This could have certainly
+' been done with an array, but I wrote this early on in the development before I switched to simply
+' using an array for holding such a list.
+' So there's two options, 1) all books or 2) select books - this is the main difference between the
+' two options in the first If statement.
+' If a user checked CheckBox1, that means they want to create all books. The code first clears out
+'   the current region around A2 to make sure the previous list that was there is cleared. It then
+'   also clears out the output record sheet to make room for the same list (By the way, this code also
+'   puts the same list of books on the "Output_Record" sheet).
+'   It then simply loops from the first item of the listbox to the last and puts the listitem (pbook name)
+'   on the "Sheet1" sheet.
+'   It then does the same thing on the "Output_Record" sheet.
+' If a user does not check CheckBox1, that means they want to produce some standard books individually.
+'   The code loops through the listbox and now checks if the listitem is selected and then puts the
+'   selected items onto the "Sheet1" sheet as well as the "Output_Record" sheet.
+' Then there is a check to see if "Checkbox12" is checked. If so, this means the user wants to run the
+' "Folder_Move" subroutine that will copy the pbook to the official location on the S:/ drive.
+' Lastly there is a check to see if "Checkbox13" is checked. If so, this will adjust "refreshBool" to
+' true and call up the RefreshAll routine later on in the code. If not, the user is notified of the last
+' refresh and given an opportunity to still request a refresh.
+With UserForm1
+    If .CheckBox1.Value = True Then
+        ws1.Range("A2").CurrentRegion.Clear
+        ws4.Range("A3:G200").Clear
+        
+        For i = 0 To .ListBox1.ListCount - 1
+            lastrow = ws1.Cells(ws1.Rows.Count, 1) _
+            .End(xlUp).row + 1
+            
+            ws1.Cells(lastrow, 1).Value = .ListBox1.List(i)
+        Next i
+        
+        For i = 0 To .ListBox1.ListCount - 1
+            lastrow = ws4.Cells(ws4.Rows.Count, 1) _
+            .End(xlUp).row + 1
+            If lastrow = 2 Then
+                ws4.Cells(lastrow + 1, 1).Value = .ListBox1.List(i)
+            Else
+            ws4.Cells(lastrow, 1).Value = .ListBox1.List(i)
+            End If
+        Next i
+        
+    Else: ws1.Range("A2").CurrentRegion.Clear
+          ws4.Range("A3:G200").Clear
+            
+        For i = 0 To .ListBox1.ListCount - 1
+            lastrow = ws1.Cells(ws1.Rows.Count, 1) _
+            .End(xlUp).row + 1
+            If .ListBox1.Selected(i) = True Then
+                ws1.Cells(lastrow, 1).Value = .ListBox1.List(i)
+            End If
+        Next i
+        
+        For i = 0 To .ListBox1.ListCount - 1
+            lastrow = ws4.Cells(ws4.Rows.Count, 1) _
+            .End(xlUp).row + 1
+            If .ListBox1.Selected(i) = True Then
+                If lastrow = 2 Then
+                    ws4.Cells(lastrow + 1, 1).Value = .ListBox1.List(i)
+                Else
+                ws4.Cells(lastrow, 1).Value = .ListBox1.List(i)
+                End If
+            Else
+            End If
+        Next i
+    End If
+    
+    If .CheckBox12.Value = True Then
+        copyBool = True
+    Else
+        copyBool = False
+    End If
+    
+    If .CheckBox13.Value = True Then
+        refreshBool = True
+    Else
+        refreshBool = False
+    End If
+    Unload UserForm1
+End With
+
+
+' This next section starts the code that will load up the array containing the pbooks and their
+' various properties that will be used throughout the process. The counter firstly finds out how
+' many pbooks will be created and then redimensions the three arrays below to fit the same number
+' of pbooks. "pbArray" is a two-dimensional array that contains not only the list of books but the
+' ten other properties associated with each of the books as found on the "Standard_Books" list.
+counter = WorksheetFunction.CountA(ws1.Range("A2").CurrentRegion)
+ReDim pbArray(1 To counter, 1 To 11)
+ReDim listArray(1 To counter)
+ReDim posArray(1 To counter)
+
+' loads up listarray with list of books selected which is now found on "Sheet1," first column.
+For i = 1 To UBound(listArray)
+    listArray(i) = ws1.Range("A2:A150").Cells(i).Value
+Next i
+
+' Finds the size of the overall list of standard books for use below
+lastrow = ws2.Cells(ws2.Rows.Count, 1) _
+    .End(xlUp).row
+    
+' "posArray" is an array that contains the locations of each book to be produced on the main
+' list found on the "Standard_Books" worksheet. The size of posArray is the same as the "listArray."
+' Therefore this loop moves through the positions of "posArray" and for each one loads up what the
+' corresponding location is of the pbook in the main list.
+For i = 1 To UBound(posArray)
+    posArray(i) = WorksheetFunction.Match(listArray(i), ws2.Range("A2:A" & lastrow), 0)
+Next i
+
+' This loop then moves from 1 to the number of books and for each, loads up the "pbArray"
+' with the properties of that book as found on the "Standard_Books" worksheet. "posArray" helps
+' to find the row address of the values. The "j" variable simply increments the position
+' of the 2nd dimension of "pbArray" so to load up that particular value from the appropriate
+' column on main list.
+For i = 1 To counter
+    For j = 1 To 11
+    pbArray(i, j) = ws2.Range("A2:K" & lastrow).Cells(posArray(i), j).Value
+    Next j
+Next i
+
+' create monthly folder if it doesn't already exist.
+blTmp = Not (fso.FolderExists(fpth & dt2))
+
+If blTmp Then
+    fso.CreateFolder (fpth & dt2)
+Else
+End If
+
+' create script to check each scheduled book name against current list of books created on same day
+' throws error to user to prevent stoppage of overall routine
+
+errBool = False
+i = 1
+Do Until i > UBound(listArray) Or errBool = True
+    fld = listArray(i)
+    fpth4 = fpth3 & fld & "_" & dt1
+    If (fso.FolderExists(fpth4)) Then
+        errBool = True
+    Else
+        i = i + 1
+    End If
+Loop
+
+If errBool = True Then
+    fld = listArray(i) & "_" & dt1
+    MsgBox "The performance book '" & fld & "' has already been created on this particular day (" & dt1 & ") and cannot be overwritten without causing a stoppage to the automated process." & vbNewLine & vbNewLine & _
+    "In order to proceed, please delete all folders with this same date that exists within the following directory and then start again:" & vbNewLine & vbNewLine & "'" & fpth & dt2 & "'"
+    Exit Sub
+Else
+End If
+
+If refreshBool = False Then
+    a = MsgBox("The last data connection refresh was on " & ws1.Range("F1").Value & "." & _
+        vbCrLf & vbCrLf & "Do you want to refresh the connection now?", vbYesNoCancel, "Data Connection Refresh")
+    If a = 6 Then
+        refreshBool = True
+    ElseIf a = 7 Then
+        refreshBool = False
+    ElseIf a = 2 Then
+        Exit Sub
+    Else
+    End If
+Else
+End If
+
+' This section is for refreshing the queries in the workbooks. It checks the status of "refreshBool,"
+' a boolen variable that is adjusted above based on whether the user has requested a data connection
+' refresh.
+
+If refreshBool = True Then
+    Call RefreshAll(fpth2)
+Else
+End If
+
+' This next section starts the main loop that produces each performance book.
+
+' This for loop will move through each of the pbooks in pbArray
+For i = 1 To UBound(pbArray)
+
+    ' This resets the error trigger to false. If, at some point in the process, a handled exception arises,
+    ' this errBool trigger will switch to false and the code will jump down to the "Nextbook" section at the
+    ' bottom.
+    errBool = False
+    
+    ' This statement activates the status bar in Excel and will be used to tell the user which book in the
+    ' process is being produced and what percent complete the overall process is.
+    Application.StatusBar = "Progress: Performance Book " & i & " of " & UBound(pbArray) & ": " _
+        & Format(i / UBound(pbArray), "Percent")
+        
+    ' Sets a begin time for tracking the timespan of the book creation.
+    BeginTime = Now
+    
+    ' pbArray(i,3) represents the third column on the "Standard_Books" worksheet. It references the "investor type"
+    ' which is used to determine if the book is filtered by integers or by block_combo strings or simply just "all
+    ' codes" which will just clear the filter. The number "3" represents all codes, so if the investor type is other
+    ' than 3, it starts the process of getting an array of investor codes to pass along to the Master Filter in the
+    ' template files.
+    If pbArray(i, 3) <> 3 Then
+        
+        ' Refreshes the list of investor codes associated with a deal level name (if applicable)
+        Call Refresh_List(pbArray(i, 2))
+        ' This calls up the Array_Builder function, passing it the investor type and deal level name. It assigns the
+        ' result of the function to the InvCodeArray which is eventually passed to the Master Filter in the templates.
+        InvCodeArray = Array_Builder(pbArray(i, 3), pbArray(i, 2))
+        
+        ' There is a piece of error handling in the Array_Builder that if it should find no codes it redimensions the
+        ' array to a size of 1 and puts the error message into that position of the array. This tests whether the
+        ' result with the error occurred. If it does then errBool is switched to "True" and the code moves to the
+        ' "Nextbook" error block.
+        If InvCodeArray(1) = "error:no_codes" Then
+            errBool = True
+        Else
+        End If
+        
+        If errBool Then GoTo Nextbook
+        
+        ' This next part attempts to take the contents of the InvCodeArray (produced above from the Array_Builder
+        ' function) and empty those contents into a string separated by commas. This will be used in the
+        ' configuration page of the pbook.
+        InvCodeStr = InvCodeArray(1)
+        
+        For k = 2 To UBound(InvCodeArray)
+            InvCodeStr = InvCodeStr & ", " & InvCodeArray(k)
+        Next k
+
+    ' If the investor type is 3, then this means "all codes" and therefore there will not be an InvCodeArray.
+    ' It is redimensioned to a size of 0 (which actually means 1 position only, don't ask me why) and that
+    ' position is given a string of "All" which then translates to a InvCodeStr of "All SLS Investor Codes"
+    ' that will be input on the configuration page.
+    Else
+        ReDim InvCodeArray(0 To 0)
+        InvCodeArray(0) = "All"
+        InvCodeStr = "All SLS Investor Codes"
+    End If
+    
+    ' At this point, everything needed for the configuration page is set, so this subroutine is called up
+    ' to produce that page for the book.
+    Call Config_Page(wb1, pbArray(i, 1), pbArray(i, 8), pbArray(i, 3), pbArray(i, 2), _
+                    pbArray(i, 4), pbArray(i, 5), pbArray(i, 6), pbArray(i, 9), InvCodeStr)
+   
+    ' This now checks the type of boarding month filtering there will be (all months or select months)
+    ' and if it is select months ("1") then it calls up the Array_Builder to return that array of
+    ' months much like it did for the investor codes above.
+    If pbArray(i, 7) = 1 Then
+        BoardMonthArray = Array_Builder(3, , pbArray(i, 5), pbArray(i, 6))
+    Else
+        ReDim BoardMonthArray(0 To 0)
+        BoardMonthArray(0) = "All"
+    End If
+    
+    ' This section here loads up an array of pages that will be included in the final book. This
+    ' is because some books do not contain all pages available. Books can have different selections
+    ' and these are stored on the "Pages_Key" worksheet, columns I:J. We will attempt to walk through
+    ' each part of this If statement and loops all at once.
+    ' Unless the tenth parameter of the book is blank ("Standard_Books" worksheet), then this process
+    ' will first find the list of excluded pages with a VLookup of the code in pbArray(i, 10). It then
+    ' takes the string of pages and uses the "Separate_Values" function to return an array containing
+    ' those pages called "tempArray."
+    ' We then find the total number of available pages (i.e. lastrow) and redimension "PageArray" to
+    ' be the length of lastrow minus the total length of "tempArray." This gives us the needed length
+    ' of an array that will hold the pages that are meant to be included in the book.
+    ' Explanation of the "j" loop below:
+        ' Move through each of the cells in the "Pages_Key" sheet (A column), and test whether the
+        ' sheet name is in the tempArray (using the IsInArray function at the bottom of this module).
+        ' If the sheet is in the array then increment up the counter variable. If not, then it assigns
+        ' the next available position in PageArray to be equal to that page name.
+    ' Finally, if the tenth parameter of the book is simply blank ("Standard_Books") then it fills
+    ' PagesArray with the entire list of available pages.
+    If pbArray(i, 10) <> "" Then
+        tempArray = Separate_Values(pbArray(i, 10))
+        lastrow = ws3.Cells(ws3.Rows.Count, 1).End(xlUp).row
+            For j = LBound(tempArray) To UBound(tempArray)
+                tempArray(j) = WorksheetFunction.VLookup(Val(tempArray(j)), ws3.Range("A2:B" & lastrow), 2, False)
+            Next j
+        ReDim PageArray(1 To lastrow - UBound(tempArray))
+            counter = 0
+            For j = 1 To lastrow - 1
+                If IsInArray(ws3.Range("B2:B" & lastrow).Cells(j).Value, tempArray) Then
+                    counter = counter + 1
+                Else
+                    PageArray(j - counter) = ws3.Range("E2:E" & lastrow).Cells(j).Value
+                End If
+            Next j
+    Else
+        lastrow = ws3.Cells(ws3.Rows.Count, 1).End(xlUp).row
+        ReDim PageArray(1 To lastrow)
+        For j = 1 To UBound(PageArray)
+            PageArray(j) = ws3.Range("E2:E" & lastrow).Cells(j).Value
+        Next j
+    End If
+    
+   
+    ' This checks if the needed folder for the performance book has been created and if not they it
+    ' creates the folder.
+    fld = pbArray(i, 1)
+    fpth4 = fpth3 & fld & "_" & dt1
+    If Not (fso.FolderExists(fpth4)) Then
+            fso.CreateFolder (fpth4)
+    Else
+    End If
+    
+    ' This creates a new excel file to hold worksheets of final book unless that excel file has already
+    ' been created. It sets that new workbook equal to "wb3."
+    fld2 = pbArray(i, 1) & "_" & dt3
+    filePathExcel = fpth4 & "\" & fld2 & ".xlsm"
+    blTmp = Not (IsWorkBookOpen(filePathExcel))
+        If blTmp Then
+            Set wb3 = Workbooks.Add
+            wb3.SaveAs Filename:=filePathExcel, FileFormat:=52
+        Else
+        End If
+        
+    ' This loop is pretty straightforward. While previous code preps the performance book to be
+    ' produced, this next code actually opens up the three templates and performs the adjustments
+    ' needed to then copy the info into the new workbook and finally make the PDF.
+    For j = LBound(wbArray) To UBound(wbArray)
+    
+        ' This writes the filename for the first template book into a variable and then
+        ' checks if that workbook is already open and if not then opens the book. It then
+        ' sets the "wb2" variable equal to that template workbook.
+        Filename = fpth2 & pbArray(i, 9) & "\" & wbArray(j) & pbArray(i, 9) & ".xlsm"
+        blTmp = Not (IsWorkBookOpen(Filename))
+        
+        If blTmp Then
+            Workbooks.Open (Filename)
+        Else
+        End If
+        
+        Set wb2 = Workbooks(wbArray(j) & pbArray(i, 9) & ".xlsm")
+
+        ' This retrieves a shortened version of the workbook name and then adjusts the
+        ' Status Bar in Excel to reflect which template is currently open in the overall
+        ' process.
+        wbstr = Mid(wb2.Name, 23, 1)
+        
+        Application.StatusBar = "Progress: Performance Book " & i & " of " & UBound(pbArray) & ": " _
+        & Format(i / UBound(pbArray), "Percent") & " (Part " & wbstr & ")"
+        
+        ' This checks the starting time for the filter routine that will run next
+        T1 = Now
+        
+        ' This calls up the "Filter_Master" subroutine in the template file, passes the necessary
+        ' parameters that are needed to filter the particular book. The code for this routine is
+        ' complex and is included within this project as a non-working module called "Expl_Filter_Master"
+        Application.Run wbArray(j) & pbArray(i, 9) & ".xlsm" & "!" & "Filter_Master", InvCodeArray, pbArray(i, 3), _
+            pbArray(i, 4), BoardMonthArray, pbArray(i, 7), wb2
+        
+        ' Finds the ending time for the filter and then the timespan between the two
+        T2 = Now
+        time = DateDiff("s", T1, T2)
+        
+        ' Finds the total time it took to filter all three template files
+        If wbstr = 1 Then
+            totaltime = 0
+        Else
+        End If
+        
+        totaltime = totaltime + time
+        
+        ' If it is the third book to filter, this then sets the "Filter_Time" variable equal to
+        ' a formatted string for use in the output record.
+        If wbstr = 3 Then
+            If UBound(InvCodeArray) = 0 Then
+                Filter_Time = "N/A"
+            Else
+            Filter_Time = Format((totaltime - 54) / UBound(InvCodeArray), "Fixed") & " Secs"
+            End If
+        Else
+        End If
+        
+        ' Runs the "ScaleAxes" routine for each file.
+        Application.Run wbArray(j) & pbArray(i, 9) & ".xlsm" & "!" & "ScaleAxes"
+        
+        ' This section runs some template specific routines.
+        If wbstr = 1 Then
+            Application.Run wbArray(j) & pbArray(i, 9) & ".xlsm" & "!" & "Move_label"
+            Application.Run wbArray(j) & pbArray(i, 9) & ".xlsm" & "!" & "Date_Input", pbArray(i, 8)
+            Application.Run wbArray(j) & pbArray(i, 9) & ".xlsm" & "!" & "Pivot_Sort"
+        ElseIf wbstr = 2 Then
+            Application.Run wbArray(j) & pbArray(i, 9) & ".xlsm" & "!" & "Date_Input", pbArray(i, 8)
+        ElseIf wbstr = 3 Then
+            Application.Run wbArray(j) & pbArray(i, 9) & ".xlsm" & "!" & "Pivot_Sort"
+            Application.Run wbArray(j) & pbArray(i, 9) & ".xlsm" & "!" & "Date_Input", pbArray(i, 8)
+        Else
+        End If
+        
+        ' Create a filepath for saving the PDF version
+        PDF_FilePath = fpth4 & "\" & fld2 & ".pdf"
+                
+        ' Call up the subroutine that actually copies over the templates as values, sorts
+        ' the pages and produces the PDF. This code is complex at parts and is fully
+        ' explained in its respective module.
+        Call Pbook_to_PDF(wb2, wb3, PDF_FilePath, pbArray(i, 1), pbArray(i, 8), PageArray)
+        
+        ' This is important. When the template file has been filtered and copied over, it is
+        ' closed without saving the changes. This is because the slicers in the templates
+        ' are all set to the dummy variables which is necessary for the fastest filter
+        ' time on subsequent books.
+        wb2.Close SaveChanges:=False
+
+   Next j
+        
+' This final section is a GoTo section referenced above. These sections will also be processed
+' at the end of the entire code if the GoTo trigger above is never fired. Therefore it is
+' coded to handle both circumstances.
+' It firstly finds the ending time of the process for the book. It then checks errBool.
+' If an error was found earlier (and the process then jumped to this section), then the
+' output_record routine is simply called and the dummy variables are used.
+' If an error wasn't found (and the process arrived here in natural due course) then
+' The output_record is called but real values are passed to the routine (please see
+' the "Sub_Output_Record" module for explanation).
+' It then proceeds to save the book and call up the Folder_Move subroutine in order
+' to make copies of the PDF into the client relations folder on the S:\ drive.
+Nextbook:
+    EndTime = Now
+    If errBool Then
+        Call Output_Record(pbArray(i, 1), BeginTime, EndTime, 9999, 0, "N/A", wb3)
+    Else
+        Call Output_Record(pbArray(i, 1), BeginTime, EndTime, UBound(InvCodeArray), UBound(BoardMonthArray), Filter_Time, wb3)
+        
+        Excel_Name = fld2 & ".xlsm"
+        PDF_Name = fld2 & ".pdf"
+        
+        wb3.Close SaveChanges:=True
+   
+        If copyBool Then
+            Call Folder_Move(pbArray(i, 11), PDF_FilePath, filePathExcel, Excel_Name, PDF_Name)
+        Else
+        End If
+    End If
+' move to next book in list
+Next i
+
+' Lastly we turn off the status bar thing once the entire process is complete
+Application.StatusBar = False
+
+End Sub
+
+Function IsInArray(stringToBeFound As String, arr As Variant) As Boolean
+  IsInArray = (UBound(Filter(arr, stringToBeFound)) > -1)
+End Function
+
+
