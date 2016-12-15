@@ -1,0 +1,48 @@
+Option Explicit
+
+Sub Folder_Move(ByVal folderClient As String, pathPDF As String, pathExcel As String, excelName As String, pdfName As String)
+' This subroutine is used at the end of the Standard process to copy the final PDF files over to the location that
+' client relations uses for accessing the Performance Books. This subroutine accepts the name of the client's folder,
+' the path where the PDF is found, the path where the Excel file is found, the name of the Excel file and the name of
+' the PDF file.
+
+Dim fso
+Dim fpth As String, fpth3 As String
+Dim newExcelPath As String, newpdfPath As String
+Dim dt2 As String
+Dim blTmp As Boolean
+
+' This first statement instantiates a file system object that will be used to create the folders necessary for
+' pasting the final files.
+Set fso = CreateObject("Scripting.FileSystemObject")
+
+' These variables below are simply used for naming folder and paths in a dynamic way since this routine is called
+' up for each individual performance book that is created.
+dt2 = Year(WorksheetFunction.EoMonth(Date, -1)) & "_" & MonthName(Month(WorksheetFunction.EoMonth(Date, -1)), True)
+fpth = "S:\Financial Management\Performance Books\"
+fpth3 = fpth & dt2 & "\" & folderClient
+newExcelPath = fpth3 & "\" & excelName
+newpdfPath = fpth3 & "\" & pdfName
+
+'create Month folder if it doesn't exist
+blTmp = Not (fso.FolderExists(fpth & dt2))
+
+If blTmp Then
+    fso.CreateFolder (fpth & dt2)
+Else
+End If
+
+'create Client Folder if it doesn't exist
+blTmp = Not (fso.FolderExists(fpth3))
+
+If blTmp Then
+    fso.CreateFolder (fpth3)
+Else
+End If
+
+' This simple method call ("FileCopy") is a static method from one of the base libraries. The first argument is the
+' old filepath, the second argument is the new filepath.
+FileCopy pathPDF, newpdfPath
+
+End Sub
+
