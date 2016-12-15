@@ -1,0 +1,81 @@
+Option Explicit
+
+Sub Date_Input(ByVal dt As String)
+
+Dim ws1 As Worksheet
+Dim wb1 As Workbook
+Dim pt As PivotTable
+
+Set wb1 = ThisWorkbook
+
+Set ws1 = wb1.Sheets("Pres4_Pivot")
+
+With ws1
+    .PivotTables("PivotTable3").PivotFields("paidInFullMonth").CurrentPage = dt
+End With
+
+End Sub
+
+
+Sub Pivot_Sort()
+
+Dim wb1 As Workbook
+Dim ws5 As Worksheet
+Dim a As Long
+
+Set wb1 = ThisWorkbook
+
+Set ws5 = wb1.Sheets("Pres5_Pivot")
+
+With ws5
+    .PivotTables("PivotTable2").PivotFields("monthReceivedDate") _
+        .ClearManualFilter
+    .PivotTables("PivotTable2").PivotFields("monthReceivedDate") _
+        .PivotItems("(blank)").Visible = False
+    a = .PivotTables("PivotTable2").PivotColumnAxis.PivotLines.Count - 1
+    If a > 0 Then
+        .PivotTables("PivotTable2").PivotFields("primaryReason").AutoSort _
+            xlDescending, "Count of accountNumber", .PivotTables("PivotTable2"). _
+            PivotColumnAxis.PivotLines(a), 1
+    Else
+    End If
+    
+    .PivotTables("PivotTable3").PivotFields("monthReceivedDate") _
+        .ClearManualFilter
+    .PivotTables("PivotTable3").PivotFields("monthReceivedDate") _
+        .PivotItems("(blank)").Visible = False
+    a = .PivotTables("PivotTable3").PivotColumnAxis.PivotLines.Count - 1
+    If a > 0 Then
+        .PivotTables("PivotTable3").PivotFields("primaryReason").AutoSort _
+            xlDescending, "Count of accountNumber", .PivotTables("PivotTable3"). _
+            PivotColumnAxis.PivotLines(a), 1
+    Else
+    End If
+    
+    .PivotTables("PivotTable5").PivotFields("monthResolvedDate") _
+        .ClearManualFilter
+    .PivotTables("PivotTable5").PivotFields("monthResolvedDate") _
+        .PivotItems("(blank)").Visible = False
+    a = .PivotTables("PivotTable5").PivotColumnAxis.PivotLines.Count - 2
+    If a > 0 Then
+        .PivotTables("PivotTable5").PivotFields("primaryReason").AutoSort _
+            xlDescending, "Count of accountNumber", .PivotTables("PivotTable5"). _
+            PivotColumnAxis.PivotLines(a), 1
+    Else
+    End If
+    
+    .PivotTables("PivotTable6").PivotFields("monthResolvedDate") _
+        .ClearManualFilter
+    .PivotTables("PivotTable6").PivotFields("monthResolvedDate") _
+        .PivotItems("(blank)").Visible = False
+    a = .PivotTables("PivotTable6").PivotColumnAxis.PivotLines.Count - 2
+    If a > 0 Then
+        .PivotTables("PivotTable6").PivotFields("primaryReason").AutoSort _
+            xlDescending, "Count of accountNumber", .PivotTables("PivotTable6"). _
+            PivotColumnAxis.PivotLines(a), 1
+    Else
+    End If
+End With
+
+End Sub
+
