@@ -1,0 +1,356 @@
+Option Explicit
+
+Sub PBook_AdHoc(ByVal fpth As String, ByVal fpth2 As String)
+' This subroutine runs the process for AdHoc books only. A lot of this routine is the same
+' as the Standard routine so this explanation will not be as detailed. I suggest reading
+' the commentary of the Standard routine to get a grasp of the process. These comments
+' will only highlight what is of significance to the AdHoc creator.
+
+Dim fso
+Dim fpth3 As String, fpth4 As String, fld As String, fld2 As String
+Dim wb1 As Workbook, wb2 As Workbook, wb3 As Workbook
+Dim ws1 As Worksheet, ws2 As Worksheet, ws3 As Worksheet, wsCodes As Worksheet
+Dim counter As Long, lastrow As Long, i As Long, j As Long, k As Long
+Dim size As Integer
+Dim DealLookup As String, DealName As String
+Dim MonthCheck1 As Long, MonthCheck2 As Long
+Dim dt1 As String, dt2 As String, dt3 As String
+Dim wbstr As String, wbstr1 As String, wbstr2 As String, wbstr3 As String
+Dim wbArray(1 To 3) As String
+Dim pbArray() As Variant
+Dim listArray() As String
+Dim posArray() As Integer
+Dim InvCodeArray() As String
+Dim BoardMonthArray() As String
+Dim PageArray() As String
+Dim InvCodeInput As String, InvCodeStr As String
+Dim blTmp As Boolean
+Dim Filename As String, PDF_FilePath As String
+Dim InvCodeType As Integer, LienType As Integer, MonthType As Integer
+Dim BookType As String, DelinqType As String
+Dim Board1 As String, Board2 As String
+Dim pbookname As String
+Dim boolCheck As Boolean
+
+Set fso = CreateObject("Scripting.FileSystemObject")
+
+Set wb1 = ThisWorkbook
+Set ws1 = wb1.Sheets("Sheet1")
+Set ws2 = wb1.Sheets("Standard_Books")
+Set ws3 = wb1.Sheets("Boarding_Months")
+Set wsCodes = wb1.Sheets("Investor_Codes")
+
+Application.Calculation = xlCalculationAutomatic
+
+wbstr1 = "Performance_Books_Part1_"
+wbstr2 = "Performance_Books_Part2_"
+wbstr3 = "Performance_Books_Part3_"
+
+wbArray(1) = wbstr1
+wbArray(2) = wbstr2
+wbArray(3) = wbstr3
+
+dt1 = Format(Date, "d mmm yy")
+dt2 = Year(WorksheetFunction.EoMonth(Date, -1)) & "_" & MonthName(Month(WorksheetFunction.EoMonth(Date, -1)), True)
+dt3 = ws1.Range("F3").Value
+
+fpth3 = fpth & dt2
+  
+With UserForm1
+    'Build InvCodeArray (if necessary)
+    If .TextBox1.Value <> "" Then
+        InvCodeInput = .TextBox1.Value
+        InvCodeArray = Separate_Values(InvCodeInput)
+        
+        If InStr(1, InvCodeInput, "_") Then
+            DealLookup = 2
+        Else
+            DealLookup = 1
+        End If
+        
+    ElseIf .TextBox5.Value <> "" And .TextBox6.Value <> "" Then
+        InvCodeArray = Array_Range(.TextBox5.Value, .TextBox6.Value)
+    ElseIf .ComboBox2.Value <> "Select" Then
+        On Error GoTo DealNameError
+        Call Refresh_List(.ComboBox2.Value)
+        
+        k = 2
+        Do Until wsCodes.Range(.ComboBox2.Value)(k) = "" Or boolCheck = True
+            If InStr(1, wsCodes.Range(.ComboBox2.Value)(k), "_") Then
+            boolCheck = True
+            Else
+            k = k + 1
+            End If
+        Loop
+        
+        If boolCheck Then
+            DealLookup = 2
+        Else
+            DealLookup = 1
+        End If
+
+        InvCodeArray = Array_Builder(DealLookup, .ComboBox2.Value)
+        On Error GoTo 0
+    ElseIf .CheckBox8.Value = True Then
+    Else
+        MsgBox "An Additional Investor Code Input is Required (e.g. Inv Cod Range)"
+        Exit Sub
+    End If
+    
+    'This just prints the range of investor codes into the immediate window (for checking/debugging)
+    If Len(Join(InvCodeArray)) > 0 Then
+        Debug.Print InvCodeArray(LBound(InvCodeArray))
+        Debug.Print InvCodeArray(UBound(InvCodeArray))
+        Debug.Print "InvCodeSize " & UBound(InvCodeArray)
+    Else
+    End If
+    
+    'Write InvCodeStr (for use on config page)
+    If .CheckBox8.Value = True Then
+        InvCodeStr = "All SLS Investor Codes"
+    Else
+        InvCodeStr = InvCodeArray(1)
+    
+        For k = 2 To UBound(InvCodeArray)
+            InvCodeStr = InvCodeStr & ", " & InvCodeArray(k)
+        Next k
+    End If
+    
+    Debug.Print InvCodeStr
+
+    'Creating an array for boarding months
+    If .CheckBox2.Value = True Then
+        ReDim BoardMonthArray(1 To 1)
+        BoardMonthArray(1) = "All"
+        MonthType = 3
+    ElseIf .TextBox2.Value <> "" And .TextBox3.Value <> "" Then
+        On Error GoTo MonthError
+        MonthCheck1 = WorksheetFunction.Match(CLng(CDate(.TextBox2.Value)), ws3.Range("A1:A445"), 0)
+        MonthCheck2 = WorksheetFunction.Match(CLng(CDate(.TextBox3.Value)), ws3.Range("A1:A445"), 0)
+        On Error GoTo 0
+        
+        If CDate(.TextBox3.Value) < CDate(.TextBox2.Value) Then
+            MsgBox "The date range is in the reverse order"
+            Exit Sub
+        Else
+        End If
+
+        BoardMonthArray = Array_Builder(3, , .TextBox2.Value, .TextBox3.Value)
+        MonthType = 1
+    Else
+        MsgBox "You Need to Select Boarding Months"
+        Exit Sub
+    End If
+       
+    'Create array of pages to be kept in final print
+    j = 0
+    For i = 0 To .ListBox2.ListCount - 1
+        If .ListBox2.Selected(i) = True Then
+            j = j + 1
+        Else
+        End If
+    Next i
+    
+    If j > 0 Then
+        ReDim PageArray(1 To j)
+            i = 0
+            k = 0
+            Do Until k > 0
+                If .ListBox2.Selected(i) = True Then
+                    k = i + 1
+                Else
+                i = i + 1
+                End If
+            Loop
+        PageArray(1) = .ListBox2.List(i)
+        j = 2
+        For k = k To .ListBox2.ListCount - 1
+            If .ListBox2.Selected(k) = True Then
+                PageArray(j) = .ListBox2.List(k)
+                j = j + 1
+            Else
+            End If
+        Next k
+                
+    ElseIf .CheckBox3.Value = True Then
+        ReDim PageArray(1 To .ListBox2.ListCount)
+        For j = 1 To UBound(PageArray)
+            PageArray(j) = .ListBox2.List(j - 1)
+        Next j
+    Else
+        MsgBox "You Need to Select Pages to Include"
+        Exit Sub
+    End If
+    
+   
+    'Find InvCodeType
+    If .CheckBox8.Value = True Then
+        InvCodeType = 3
+    ElseIf .TextBox1.Value <> "" Or .TextBox5.Value <> "" Or .ComboBox2 <> "Select" Then
+        If DealLookup = "2" Then
+            InvCodeType = 2
+        Else
+            InvCodeType = 1
+        End If
+    Else
+        MsgBox "You Need to Select Investor Codes"
+        Exit Sub
+    End If
+    'Find Deal Name (if applicable)
+    If .ComboBox2.Value <> "Select" Then
+        DealName = .ComboBox2.Value
+    Else
+        DealName = "Not Applicable"
+    End If
+    'Find Lien
+    If .CheckBox9.Value = True Then
+        LienType = 1
+    ElseIf .CheckBox10.Value = True Then
+        LienType = 2
+    ElseIf .CheckBox11.Value = True Then
+        LienType = 3
+    Else
+        MsgBox "You Need to Select a Lien Position"
+        Exit Sub
+    End If
+    
+    'Find Boarding Month Inputs For Config
+    If .CheckBox2.Value = True Then
+        Board1 = "1"
+        Board2 = "1"
+    ElseIf .TextBox2.Value <> "" And .TextBox3.Value <> "" Then
+        Board1 = .TextBox2.Value
+        Board2 = .TextBox3.Value
+    Else
+        MsgBox "You Need to Select Boarding Months"
+        Exit Sub
+    End If
+    'Find DelinquencyType
+    If .CheckBox5.Value = True Then
+        DelinqType = "MBA"
+    ElseIf .CheckBox6.Value = True Then
+        DelinqType = "OTS"
+    Else
+        MsgBox "You Need to Select a Delinquency Type"
+        Exit Sub
+    End If
+    
+    'Get Name of Book
+    If .TextBox7.Value = "" Then
+        pbookname = "Custom Report"
+    Else
+        pbookname = .TextBox7.Value
+    End If
+    
+    'Decide if refresh of data is requested
+    If .CheckBox7.Value = True Then
+        For j = LBound(wbArray) To UBound(wbArray)
+                Filename = fpth2 & DelinqType & "\" & wbArray(j) & DelinqType & ".xlsm"
+                blTmp = Not (IsWorkBookOpen(Filename))
+                
+                If blTmp Then
+                    Workbooks.Open (Filename)
+                Else
+                End If
+                
+                Set wb2 = Workbooks(wbArray(j) & DelinqType & ".xlsm")
+                
+                wb2.Activate
+                ActiveWorkbook.RefreshAll
+                DoEvents
+                               
+                wb2.Close SaveChanges:=True
+        Next j
+    Else
+    End If
+    
+    Unload UserForm1
+End With
+    
+Call Config_Page(wb1, pbookname, dt3, InvCodeType, DealName, _
+                LienType, Board1, Board2, DelinqType, InvCodeStr)
+                    
+                
+' create monthly folder if it doesn't already exist
+blTmp = Not (fso.FolderExists(fpth3))
+
+If blTmp Then
+    fso.CreateFolder (fpth3)
+Else
+End If
+
+fld = pbookname & "_" & dt1 & "_" & Format(Now, "hhmm")
+fpth4 = fpth3 & "\" & fld
+
+If Not (fso.FolderExists(fpth4)) Then
+        fso.CreateFolder (fpth4)
+Else
+End If
+
+'create a new excel file to hold worksheets of final book
+Filename = fpth4 & "\" & fld & ".xlsx"
+blTmp = Not (IsWorkBookOpen(Filename))
+    If blTmp Then
+        Set wb3 = Workbooks.Add
+        wb3.SaveAs Filename:=Filename
+    Else
+    End If
+
+' Open the first workbook if it not already open and set wb2 variable to workbook
+For j = LBound(wbArray) To UBound(wbArray)
+    Filename = fpth2 & DelinqType & "\" & wbArray(j) & DelinqType & ".xlsm"
+    blTmp = Not (IsWorkBookOpen(Filename))
+      
+    If blTmp Then
+        Workbooks.Open (Filename)
+    Else
+    End If
+    
+    Set wb2 = Workbooks(wbArray(j) & DelinqType & ".xlsm")
+                
+    ' send array of parameters for the book and run main filter routine
+        
+    Application.Run wbArray(j) & DelinqType & ".xlsm" & "!" & "Filter_Master", InvCodeArray, InvCodeType, _
+        LienType, BoardMonthArray, MonthType, wb2
+
+    Application.Run wbArray(j) & DelinqType & ".xlsm" & "!" & "ScaleAxes"
+    
+    wbstr = Mid(wb2.Name, 23, 1)
+    If wbstr = 1 Then
+        Application.Run wbArray(j) & DelinqType & ".xlsm" & "!" & "Move_label"
+        Application.Run wbArray(j) & DelinqType & ".xlsm" & "!" & "Pivot_Sort"
+        Application.Run wbArray(j) & DelinqType & ".xlsm" & "!" & "Date_Input", dt3
+    ElseIf wbstr = 2 Then
+        Application.Run wbArray(j) & DelinqType & ".xlsm" & "!" & "Date_Input", dt3
+    ElseIf wbstr = 3 Then
+        Application.Run wbArray(j) & DelinqType & ".xlsm" & "!" & "Pivot_Sort"
+        Application.Run wbArray(j) & DelinqType & ".xlsm" & "!" & "Date_Input", dt3
+    Else
+    End If
+
+    PDF_FilePath = fpth4 & "\" & fld & ".pdf"
+        
+    Call Pbook_to_PDF(wb2, wb3, PDF_FilePath, pbookname, dt3, PageArray)
+     
+    wb2.Close SaveChanges:=False
+
+Next j
+     
+    wb3.Close SaveChanges:=True
+
+
+Exit Sub
+DealNameError:
+    MsgBox "The Deal Name entered is not valid"
+    Exit Sub
+    
+MonthError:
+    MsgBox "One of the two months entered is not a valid 'End of Month' value"
+    Exit Sub
+
+End Sub
+
+
+
+
+
