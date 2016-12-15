@@ -1,0 +1,110 @@
+Option Explicit
+
+Public Function Validator(wb3 As Workbook) As String()
+' This function is used to determine if a particular performance book has consistency across various metrics.
+' The only parameter is the workbook object that represents the performance book. The output of this function
+' is a string that contains a few pieces of information needed by the subroutine that calls it.
+
+Dim WsArray() As String
+Dim ProcessArray(1 To 3, 1 To 4, 1 To 2) As String
+Dim sh As Worksheet
+Dim i As Long, j As Long, k As Long
+Dim TestVal1, TestVal2 As Long
+Dim ErrorWS As String, ErrorCell As String
+Dim tmpBool As Boolean
+Dim tmpArray(1 To 3) As String
+
+' This function was written in perhaps not the most easy way to digest but certainly the most
+' efficient and scalable. Why? Because it is awesome this way.
+' The function uses a three-dimensional array to store and process the various validation exercises
+' necessary to validate a book. The reason the three-dimensional array was used is because for each
+' validation exercise [1st dim] (e.g. overall loan count, prior month count for roll-rates, etc) there
+' is also a specific worksheet that containing the validation cell [2nd dim] and a specific cell on
+' that worksheet containing the data [3rd dim]. This setup will allow us to add another validation
+' exercise by simply extending the first dimension to the appropriate number necessary. If that new
+' exercise required more worksheets to validate than the current max (found in the declaration of the
+' ProcessArray above (second dimension) you can simply increase the range of the second dimension
+' accordingly. Below I manually load up the values needed to perform this validation.
+ProcessArray(1, 1, 1) = "Loan Stratification"
+ProcessArray(1, 1, 2) = "AH3"
+ProcessArray(1, 2, 1) = "Delinquency Status"
+ProcessArray(1, 2, 2) = "AH3"
+ProcessArray(1, 3, 1) = "Delinquency Trending"
+ProcessArray(1, 3, 2) = "AH3"
+ProcessArray(1, 4, 1) = "Call Center Statistics"
+ProcessArray(1, 4, 2) = "AH3"
+ProcessArray(2, 1, 1) = "Delinquency Trending"
+ProcessArray(2, 1, 2) = "AH4"
+ProcessArray(2, 2, 1) = "Roll-Rate (1 Month)"
+ProcessArray(2, 2, 2) = "AH4"
+ProcessArray(2, 3, 1) = "Call Center Statistics"
+ProcessArray(2, 3, 2) = "AH4"
+ProcessArray(2, 4, 1) = ""
+ProcessArray(2, 4, 2) = ""
+ProcessArray(3, 1, 1) = "Delinquency Trending"
+ProcessArray(3, 1, 2) = "AH6"
+ProcessArray(3, 2, 1) = "Roll-Rate (3 Month)"
+ProcessArray(3, 2, 2) = "AH6"
+ProcessArray(3, 3, 1) = ""
+ProcessArray(3, 3, 2) = ""
+ProcessArray(3, 4, 1) = ""
+ProcessArray(3, 4, 2) = ""
+
+' tmpBool is the boolean variable we will adjust IF the particular book fails
+' to meet the validation test. Since the default for a variable of type "boolean"
+' is "False," here we set the variable to an initial value of "True." In other words,
+' all books are considered valid unless found otherwise.
+tmpBool = True
+
+' We will attempt to explain this loop all at once. Basically it is moving through the
+' 3D array to test the appropriate cells on the appropriate pages to see if they match.
+' If the cells do not match, then the tmpBool variable is switched to "off." The various
+' exercises are incremented through the "i" variable. As you can see from the third line
+' below, in each loop the "TestVal1" variable is set to the value of the first sheet, first
+' cell in the exercise. Again the exercises are numbered in the first dimension of the array.
+' The various worksheets in the exercise are incremented through the "j" variable. For each
+' loop we first check if the index position of the array contains any data (in cases where
+' an exercise has less than the max number of worksheets, this might be blank) and check if
+' the tmpBool variable is still set to true. If so, we then check if the worksheet in the
+' exercise is still visible (it might have been hidden by the "PDF_Maker" routine due to a
+' lack of content). If all of these conditions check, we set "TestVal2" equal to the
+' appropriate cell value that contains the data to check. We then check if the two "TestVal1/2"
+' are equal and change the tmpBool variable accordingly. If at any point, the tmpBool variable
+' is no longer "True" then the loop will not continue the process for that exercise and will also
+' not continue the process for the other exercises because the book is not validated. Notice
+' in the "Else" section below that when the tmpBool variable is made "False," The "ErrorWS" variable
+' is set to the Worksheet name that contained the invalid data and the "ErrorCell" variable is set
+' to the Cell address of the invalid data (because some worksheets contain more than one cell for
+' validation).
+With wb3
+    For i = LBound(ProcessArray, 1) To UBound(ProcessArray, 1)
+        TestVal1 = .Sheets(ProcessArray(i, 1, 1)).Range(ProcessArray(i, 1, 2)).Value
+        For j = LBound(ProcessArray, 2) To UBound(ProcessArray, 2)
+            If ProcessArray(i, j, 1) <> "" And tmpBool = True Then
+                If .Sheets(ProcessArray(i, j, 1)).Visible = True Then
+                    TestVal2 = .Sheets(ProcessArray(i, j, 1)).Range(ProcessArray(i, j, 2)).Value
+                    If TestVal1 = TestVal2 Then
+                        tmpBool = True
+                    Else
+                        tmpBool = False
+                        ErrorWS = ProcessArray(i, j, 1)
+                        ErrorCell = ProcessArray(i, j, 2)
+                    End If
+                Else
+                End If
+            Else
+            End If
+        Next j
+    Next i
+End With
+
+' In this section we set the components of the tmpArray equal to the results of the loop above.
+tmpArray(1) = CStr(tmpBool)
+tmpArray(2) = ErrorWS
+tmpArray(3) = ErrorCell
+
+' This last statement copies the contents of tmpArray to the array that will be returned by this function.
+Validator = tmpArray()
+
+End Function
+
