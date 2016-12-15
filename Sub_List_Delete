@@ -1,0 +1,131 @@
+Option Explicit
+
+Sub Delete_List(ByVal ListName As String)
+Dim answer As Long
+Dim wb As Workbook
+Dim wsInv As Worksheet, wsBooks As Worksheet, wsQuery As Worksheet
+Dim lastrow As Long
+Dim report As String
+Dim i As Long, j As Long, k As Long
+Dim listStr As String, rgStr As String
+Dim OldDeal As String
+Dim tmpBool  As Boolean
+Dim nm As Name
+Dim matchBool As Boolean
+
+Set wb = ThisWorkbook
+Set wsBooks = wb.Sheets("Standard_Books")
+Set wsInv = wb.Sheets("Investor_Codes")
+Set wsQuery = wb.Sheets("Special_Queries")
+
+
+i = 0
+j = 1
+k = 2
+tmpBool = False
+
+With wsBooks
+    lastrow = .Cells(wsBooks.Rows.Count, 2).End(xlUp).row
+    
+    Do Until i > 0 Or j > lastrow
+        If .Cells(j, 2).Value = ListName Then
+            report = .Cells(j, 1).Value
+            i = i + 1
+        Else
+            j = j + 1
+        End If
+    Loop
+End With
+    
+If i > 0 Then
+    MsgBox ("The list " & "'" & ListName & "'" & " is currently being used by the " _
+    & "reoccurring book " & "'" & report & "'" & " and cannot be deleted." & vbNewLine & vbNewLine _
+    & "To delete this list, you must first delete the book(s) that are dependent upon this list.")
+    
+    Exit Sub
+Else
+End If
+
+Do Until wsInv.Range(ListName)(k) = ""
+    listStr = listStr & wsInv.Range(ListName)(k) & ","
+    k = k + 1
+Loop
+
+listStr = Left(listStr, (Len(listStr) - 1))
+rgStr = wb.Names(ListName).RefersTo
+rgStr = Right(rgStr, (Len(rgStr) - 16))
+OldDeal = wsInv.Cells(1, wsInv.Range(rgStr).Column).Value
+
+            
+answer = MsgBox("Are you sure you want to delete this list?" & vbNewLine & vbNewLine & _
+                "It is currently associated with the Deal_Level_Name " & "'" & OldDeal & "'" & vbNewLine & vbNewLine _
+                    & "The contents of this list are:" & vbNewLine & vbNewLine _
+                    & listStr & vbNewLine & vbNewLine _
+                    & "Proceeding will permanently remove this list from the program. The list can be added again at a later time if needed." & _
+                    vbNewLine & vbNewLine & "Do you wish to proceed?", vbYesNo + vbQuestion, "Delete List?")
+
+If answer = vbYes Then
+        wb.Names(ListName).Delete
+        wsInv.Range(rgStr).Clear
+        wsInv.Cells(1, wsInv.Range(rgStr).Column).Clear
+        
+        j = 2
+        Do Until tmpBool = True
+            If wsInv.Cells(j, 3).Value = ListName Then
+                wsInv.Cells(j, 3).Clear
+                tmpBool = True
+            Else
+                j = j + 1
+            End If
+        Loop
+        
+        With wsInv
+            lastrow = .Cells(.Rows.Count, 3).End(xlUp).row
+            .Range("C3:C" & lastrow).Sort Key1:=.Cells(3, 3), Order1:=xlAscending, Header:=xlNo, OrderCustom:=1, MatchCase:=False, DataOption1:=xlSortNormal
+            lastrow = .Cells(.Rows.Count, 3).End(xlUp).row
+            DeleteCodes_Form.ListBox1.RowSource = "Investor_Codes!C3:C" & lastrow
+            UserForm1.ComboBox2.RowSource = "Investor_Codes!C2:C" & lastrow
+        End With
+        
+        With wsQuery
+            lastrow = wsQuery.Cells(wsQuery.Rows.Count, 1).End(xlUp).row
+'            Debug.Print lastrow
+            
+            i = 1
+            matchBool = False
+            Do Until matchBool = True Or i > lastrow
+                If wsQuery.Cells(i, 1).Value = ListName Then
+                    matchBool = True
+                Else
+                    i = i + 1
+                End If
+            Loop
+            
+            If matchBool Then
+                .Cells(i, 1).Clear
+                .Cells(i, 2).Clear
+            Else
+            End If
+        End With
+            
+Else
+    Exit Sub
+End If
+
+tmpBool = False
+    For Each nm In wb.Names
+        If nm.Name = ListName Then
+            tmpBool = True
+        Else
+        End If
+    Next nm
+    
+    If tmpBool = False Then
+        MsgBox "The list " & "'" & ListName & "'" & " has been successfully deleted."
+    Else
+        MsgBox "The list " & "'" & ListName & "'" & " has NOT been successfully deleted."
+        Stop
+    End If
+
+End Sub
+
