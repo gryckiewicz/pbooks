@@ -1,0 +1,65 @@
+Option Explicit
+
+Sub RefreshAll(ByVal fpth2 As String)
+' this subroutine is used to refresh all the pivots that are contained in the six template files.
+' It doesn't require any parameters and will refresh both the OTS and MBA versions when called.
+' This routine is only called from the standard books option. The Ad Hoc option has its own version
+' that just updates the data connections of the specific type of template it will use (OTS or MBA).
+
+Dim wbstr1 As String, wbstr2 As String, wbstr3 As String
+Dim wbArray(1 To 3) As String
+Dim DelinqArray(1 To 2) As String
+Dim Filename As String
+Dim wb1 As Workbook, wb2 As Workbook
+Dim ws1 As Worksheet
+Dim i As Long, j As Long, k As Long
+Dim blTmp As Boolean
+
+wbstr1 = "Performance_Books_Part1_"
+wbstr2 = "Performance_Books_Part2_"
+wbstr3 = "Performance_Books_Part3_"
+
+wbArray(1) = wbstr1
+wbArray(2) = wbstr2
+wbArray(3) = wbstr3
+
+DelinqArray(1) = "MBA"
+DelinqArray(2) = "OTS"
+
+Set wb1 = ThisWorkbook
+Set ws1 = wb1.Sheets("Sheet1")
+
+' This section is the double loop that runs through both versions (OTS/MBA) of each template.
+' For each, it updates the status bar so to display the progress to the user.
+i = 1
+For j = LBound(wbArray) To UBound(wbArray)
+    For k = LBound(DelinqArray) To UBound(DelinqArray)
+    
+        Application.StatusBar = "Updating Data Connections: File " & i & " of 6. Please Wait"
+        
+        Filename = fpth2 & DelinqArray(k) & "\" & wbArray(j) & DelinqArray(k) & ".xlsm"
+        blTmp = Not (IsWorkBookOpen(Filename))
+        
+        If blTmp Then
+            Workbooks.Open (Filename)
+        Else
+        End If
+        
+        Set wb2 = Workbooks(wbArray(j) & DelinqArray(k) & ".xlsm")
+        
+        wb2.Activate
+        ActiveWorkbook.RefreshAll
+        DoEvents
+        
+        wb2.Close SaveChanges:=True
+        i = i + 1
+    Next k
+Next j
+
+With ws1
+        .Range("F1").Value = Now
+End With
+        
+Application.StatusBar = False
+        
+End Sub
