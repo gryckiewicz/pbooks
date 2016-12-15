@@ -1,0 +1,89 @@
+Option Explicit
+
+Public Function Array_Query(ByVal DealName As String) As ADODB.Recordset
+Dim cnn As New ADODB.Connection
+Dim rst As New ADODB.Recordset
+Dim ConnectionString As String
+Dim StrQuery As String
+Dim arrayCodes As Variant
+Dim wsQuery As Worksheet
+Dim lastrow As Long
+Dim matchBool As Boolean
+Dim i As Long
+Dim DealName2 As String
+
+Set wsQuery = ThisWorkbook.Sheets("Special_Queries")
+
+ConnectionString = "Provider=SQLOLEDB.1;Integrated Security=SSPI;Persist Security Info=True; Initial Catalog=master;Data Source=sqlprd13;Use Procedure for Prepare=1; Auto Translate=True;Packet Size=4096;Workstation ID=2UA9160JQJ; Use Encryption for Data=False;Tag with column collation when possible=False"
+
+cnn.Open ConnectionString
+
+cnn.CommandTimeout = 900
+
+Application.StatusBar = "Please Wait"
+
+lastrow = wsQuery.Cells(wsQuery.Rows.Count, 1).End(xlUp).row
+Debug.Print lastrow
+
+i = 1
+matchBool = False
+Do Until matchBool = True Or i > lastrow
+    If wsQuery.Cells(i, 1).Value = DealName Then
+        matchBool = True
+    Else
+        i = i + 1
+    End If
+Loop
+
+If matchBool Then
+    StrQuery = WorksheetFunction.VLookup(DealName, wsQuery.Range("A1:B" & lastrow), 2, False)
+Else
+    DealName2 = "'" & DealName & "'"
+    Debug.Print DealName2
+    StrQuery = "select investorNumber = convert(int,dn.[Investor Number]) From Loanlevel_Database.dbo.[Deal Names] dn with(nolock) Where Deal_Level_Name = " & DealName2
+End If
+
+
+
+
+'If DealName2 = "'SLS_MSR_Investors'" Then
+'    StrQuery = "select investorNumber = convert(int,dn.[Investor Number]) From Loanlevel_Database.dbo.[Deal Names] dn with(nolock) inner join (select distinct a.[eff inv cd] from Loanlevel_Database.dbo.Loanlevel_EOM_13Months a with(nolock) where a.[run date] between DATEADD(m,-24,GetDate()) and GETDATE() and a.[close code] in (1,6)) b on b.[eff inv cd] = dn.[Investor Number] where dn.SLS_OWNED_MSR_FLAG = 1 order by 1"
+'ElseIf DealName2 = "'AF_1_SLS_BanaBank'" Then
+'    StrQuery = "select investorNumber = convert(int,dn.[Investor Number]) From Loanlevel_Database.dbo.[Deal Names] dn with(nolock) inner join (select distinct a.[eff inv cd] from Loanlevel_Database.dbo.Loanlevel_EOM_13Months a with(nolock) where a.[run date] between DATEADD(m,-24,GetDate()) and GETDATE() and a.[close code] in (1,6)) b on b.[eff inv cd] = dn.[Investor Number] where (dn.ADVANCE_FACILITY = 1 AND DN.SECURITIZATION_TRUST_ADVANCE_FACILITY not in (8888,9999)) order by 1"
+'ElseIf DealName2 = "'AF_7_SLS_ROBIN_WellsBank'" Then
+'    StrQuery = "select investorNumber = convert(int,dn.[Investor Number]) From Loanlevel_Database.dbo.[Deal Names] dn with(nolock) inner join (select distinct a.[eff inv cd] from Loanlevel_Database.dbo.Loanlevel_EOM_13Months a with(nolock) where a.[run date] between DATEADD(m,-24,GetDate()) and GETDATE() and a.[close code] in (1,6)) b on b.[eff inv cd] = dn.[Investor Number] where dn.ADVANCE_FACILITY = 8 order by 1"
+'ElseIf DealName2 = "'FREDDIE_MAC_ALL'" Then
+'    StrQuery = "select investorNumber = convert(int,dn.[Investor Number]) From Loanlevel_Database.dbo.[Deal Names] dn with(nolock) where dn.[Investor Number] between 500 and 599"
+'Else
+'    StrQuery = "select investorNumber = convert(int,dn.[Investor Number]) From Loanlevel_Database.dbo.[Deal Names] dn with(nolock) Where Deal_Level_Name = " & DealName2
+'End If
+
+rst.Open StrQuery, cnn
+
+'arrayCodes = rst.GetRows
+'
+'Debug.Print arrayCodes(0, 1)
+'Debug.Print arrayCodes(0, 13)
+
+'Sheets("Special_Queries").Range("F4").CopyFromRecordset rst
+
+Set Array_Query = rst
+
+
+Application.StatusBar = False
+
+End Function
+
+Sub tester()
+
+Dim DealName As String
+Dim rst3 As New ADODB.Recordset
+
+DealName = "AF_7_SLS_ROBIN_WellsBank"
+
+Set rst3 = Array_Query(DealName)
+
+Sheets("Special_Queries").Range("F10").CopyFromRecordset rst3
+
+
+End Sub
