@@ -1,0 +1,23 @@
+Option Explicit
+
+Sub Date_Input(ByVal dt As String)
+
+Dim ws1 As Worksheet
+Dim ws2 As Worksheet
+Dim ws3 As Worksheet
+Dim ws4 As Worksheet
+Dim ws5 As Worksheet
+Dim wb1 As Workbook
+Dim pt As PivotTable
+
+Set wb1 = ThisWorkbook
+
+Set ws1 = wb1.Sheets("Pres2_Pivot")
+
+
+With ws1
+    .PivotTables("PivotTable1").PivotFields("runDate").CurrentPage = dt
+    .PivotTables("PivotTable3").PivotFields("runDate").CurrentPage = dt
+End With
+
+End Sub
