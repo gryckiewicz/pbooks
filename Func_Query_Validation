@@ -1,0 +1,106 @@
+Public Function Query_Validation(ByVal DealName As String, ByVal testQueryString As String) As String()
+Dim wb As Workbook
+Dim wsQuery As Worksheet
+Dim ws As Worksheet
+Dim i As Long
+Dim colNums As Long
+Dim firstOpenRow As Long
+Dim rst As New ADODB.Recordset
+Dim nonReturnBool As Boolean
+Dim quantityBool As Boolean
+Dim nonIntegerBool As Boolean
+Dim lastrow As Long
+Dim lastCol As Long
+Dim resultArray(1 To 3) As String
+Dim testValue As Variant
+
+Set wb = ThisWorkbook
+Set ws = wb.Sheets("Sheet1")
+Set wsQuery = wb.Sheets("Special_Queries")
+
+i = 1
+Do Until firstOpenRow <> 0
+    If wsQuery.Cells(i, 1).Value = "" Then
+        firstOpenRow = wsQuery.Cells(i, 1).row
+    Else
+        i = i + 1
+    End If
+Loop
+
+With wsQuery
+    .Cells(firstOpenRow, 1).Value = DealName
+    .Cells(firstOpenRow, 2).Value = testQueryString
+End With
+
+Set rst = Array_Query(DealName)
+ws.Cells(1, 27).CopyFromRecordset rst
+
+' section to test result set
+With ws
+    If .Cells(1, 27).Value <> "" Then
+        nonReturnBool = False
+    Else
+        nonReturnBool = True
+    End If
+    
+    lastCol = .Cells(1, ws.Columns.Count).End(xlToLeft).Column
+    i = 28
+    colNums = 1
+    Do Until i > lastCol
+        If ws.Cells(1, i).Value <> "" Then
+            colNums = colNums + 1
+            i = i + 1
+        Else
+        End If
+    Loop
+    
+    
+    lastrow = .Cells(ws.Rows.Count, 27).End(xlUp).row
+    i = 1
+    nonIntegerBool = False
+    Do Until i > lastrow Or nonIntegerBool = True
+        If TypeName(.Cells(i, 27).Value) = "Double" Then
+'        Range("AA" & i).Characters(1, 1).Text <> 0 Then
+            i = i + 1
+        Else
+            nonIntegerBool = True
+        End If
+    Loop
+End With
+
+'Debug.Print TypeName(ws.Cells(i, 27).Value)
+
+' resultArray will contain the results to be sent back to the calling routine for the query test.
+' resultArray(1) will be Y/N based on whether the result set has data returned
+' resultArray(2) will be a number representing the number of columns in the data
+' resultArray(3) will be Y/N based on whether the result set is NOT an integer (yes = not an integer)
+
+If nonReturnBool = True Then
+    resultArray(1) = "Y"
+Else
+    resultArray(1) = "N"
+End If
+
+resultArray(2) = colNums
+
+If nonIntegerBool = True Then
+    resultArray(3) = "Y"
+Else
+    resultArray(3) = "N"
+End If
+
+If nonReturnBool = True Or nonIntegerBool = True Or colNums > 1 Then
+    With wsQuery
+        .Cells(firstOpenRow, 1).Clear
+        .Cells(firstOpenRow, 2).Clear
+    End With
+Else
+End If
+
+With ws
+    .Range("AA1").CurrentRegion.Clear
+End With
+
+Query_Validation = resultArray()
+
+End Function
