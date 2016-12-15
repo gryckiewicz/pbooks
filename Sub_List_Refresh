@@ -1,0 +1,57 @@
+Option Explicit
+
+Sub Refresh_List(ByVal ListName As String)
+
+Dim wb As Workbook
+Dim ws As Worksheet
+Dim nm As Name
+Dim DealName As String, DealName2 As String
+Dim rgStr As String
+Dim colNum As Long
+Dim rst2 As New ADODB.Recordset
+Dim lastrow As Long
+Dim tmpBool As Boolean
+
+Set wb = ThisWorkbook
+Set ws = wb.Sheets("Investor_Codes")
+
+rgStr = wb.Names(ListName).RefersTo
+rgStr = Right(rgStr, (Len(rgStr) - 16))
+DealName = ws.Cells(1, ws.Range(rgStr).Column).Value
+
+If DealName = "Custom" Then
+    Exit Sub
+Else
+End If
+
+wb.Names(ListName).Delete
+ws.Range(rgStr).Clear
+colNum = ws.Range(rgStr).Column
+ws.Cells(1, ws.Range(rgStr).Column).Clear
+
+With ws
+    .Cells(1, colNum).Value = DealName
+    .Cells(2, colNum).Value = ListName
+End With
+
+Set rst2 = Array_Query(DealName)
+ws.Cells(3, colNum).CopyFromRecordset rst2
+
+lastrow = ws.Cells(ws.Rows.Count, colNum).End(xlUp).row
+wb.Names.Add Name:=ListName, RefersTo:=ws.Range(Cells(2, colNum).Address, Cells(lastrow, colNum).Address)
+
+tmpBool = False
+For Each nm In wb.Names
+    If nm.Name = ListName Then
+        tmpBool = True
+    Else
+    End If
+Next nm
+
+If tmpBool = False Then
+    MsgBox "The Workbook Name " & "'" & ListName & "'" & " no longer exists. The refresh of its codes didn't not complete. This will end the Performance Books Process."
+    Stop
+Else
+End If
+
+End Sub
