@@ -1,0 +1,128 @@
+Option Explicit
+
+Sub Create_Code_List(ByVal ListName As String, ByVal DealName As String, Optional ByVal codeList As String)
+
+Dim wb As Workbook
+Dim ws As Worksheet
+Dim firstOpenColumn As Long, lastrow As Long, lastrow2 As Long, firstOpenRow As Long, bookRow As Long
+Dim i, j, k As Integer
+Dim rst2 As New ADODB.Recordset
+Dim DealName2 As String
+Dim OldDeal As String
+Dim CodeArray() As String
+Dim Destination As Range
+Dim lastCol As Integer
+Dim listStr As String
+Dim nm As Name
+Dim answer As Integer
+Dim rgStr As String
+Dim tmpBool As Boolean
+
+
+Set wb = ThisWorkbook
+Set ws = wb.Sheets("Investor_Codes")
+
+firstOpenColumn = 0
+i = 5
+j = 2
+k = 2
+
+For Each nm In wb.Names
+    If nm.Name = ListName Then
+        Do Until ws.Range(ListName)(k) = ""
+            listStr = listStr & ws.Range(ListName)(k) & ","
+            k = k + 1
+        Loop
+        listStr = Left(listStr, (Len(listStr) - 1))
+        rgStr = nm.RefersTo
+        rgStr = Right(rgStr, (Len(rgStr) - 16))
+        OldDeal = ws.Cells(1, ws.Range(rgStr).Column).Value
+    Else
+    End If
+Next nm
+
+If listStr <> "" Then
+    answer = MsgBox("The list " & "'" & ListName & "'" & " already exists" & vbNewLine _
+                    & "and it is associated with the Deal_Level_Name " & "'" & OldDeal & "'" & vbNewLine & vbNewLine _
+                    & "The contents of this list are:" & vbNewLine & vbNewLine _
+                    & listStr & vbNewLine & vbNewLine _
+                    & "Do you wish to proceed? If yes, the existing list will be replaced", vbYesNo, "List Exists")
+    If answer = vbNo Then
+        Exit Sub
+    Else
+        wb.Names(ListName).Delete
+        ws.Range(rgStr).Clear
+        ws.Cells(1, ws.Range(rgStr).Column).Clear
+        Do Until bookRow <> 0
+            If ws.Cells(j, 3).Value = ListName Then
+                ws.Cells(j, 3).Clear
+                bookRow = ws.Cells(j, 3).row
+            Else
+                j = j + 1
+            End If
+        Loop
+        
+    End If
+Else
+End If
+        
+i = 5
+Do Until firstOpenColumn <> 0
+    If ws.Cells(1, i).Value = "" Then
+        firstOpenColumn = ws.Cells(1, i).Column
+    Else
+        i = i + 1
+    End If
+Loop
+
+With ws
+    .Cells(1, firstOpenColumn).Value = DealName
+    .Cells(2, firstOpenColumn).Value = ListName
+    
+    If .Cells(1, firstOpenColumn).Value = "Custom" Then
+        CodeArray = Separate_Values(codeList)
+        Set Destination = .Cells(3, firstOpenColumn)
+        Set Destination = Destination.Resize(UBound(CodeArray), 1)
+        Destination.Value = Application.Transpose(CodeArray)
+    Else
+        Set rst2 = Array_Query(DealName)
+        .Cells(3, firstOpenColumn).CopyFromRecordset rst2
+    End If
+        
+    lastrow = .Cells(ws.Rows.Count, firstOpenColumn).End(xlUp).row
+    wb.Names.Add Name:=ListName, RefersTo:=ws.Range(Cells(2, firstOpenColumn).Address, Cells(lastrow, firstOpenColumn).Address)
+    
+    j = 2
+    Do Until firstOpenRow <> 0
+        If .Cells(j, 3).Value = "" Then
+            firstOpenRow = ws.Cells(j, 3).row
+        Else
+            j = j + 1
+        End If
+    Loop
+    
+    .Cells(firstOpenRow, 3).Value = ListName
+    lastrow2 = .Cells(ws.Rows.Count, 3).End(xlUp).row
+    .Range("C3:C" & lastrow2).Sort Key1:=.Cells(3, 3), Order1:=xlAscending, Header:=xlYes, OrderCustom:=1, MatchCase:=False, DataOption1:=xlSortNormal
+    lastrow2 = .Cells(ws.Rows.Count, 3).End(xlUp).row
+    
+    tmpBool = False
+    For Each nm In wb.Names
+        If nm.Name = ListName Then
+            tmpBool = True
+        Else
+        End If
+    Next nm
+    
+    If tmpBool = True Then
+        CreateBook_Form.ComboBox2.RowSource = "Investor_Codes!C2:C" & lastrow2
+        UserForm1.ComboBox2.RowSource = "Investor_Codes!C2:C" & lastrow2
+        MsgBox "The list " & "'" & ListName & "'" & " has been successfully added"
+    Else
+        MsgBox "The list " & "'" & ListName & "'" & " has NOT been successfully added"
+        Stop
+    End If
+End With
+
+
+End Sub
