@@ -1,0 +1,31 @@
+Option Explicit
+
+Public Function IsWorkBookOpen(ByVal Filename As String)
+' This function is used to determine whether a workbook is open already or not based on
+' a Filename that is inputted as a parameter. This function returns a True/False statment
+' depending on the ErrNo variable.
+
+    Dim ff As Long, ErrNo As Long
+
+' It is somewhat complex to understand what
+' is happening from a computer process standpoint. Nevertheless, the basic point is to
+' test what happens when attempting to open a file. If the file is already open, an
+' error is returned. If not, no error is returned.
+    On Error Resume Next
+    ff = FreeFile()
+    Open Filename For Input Lock Read As #ff
+    Close ff
+    ErrNo = Err
+    On Error GoTo 0
+
+' Here we see error handling to determine what the error code means for whether a
+' workbook is open. If ErrNo is 0, then the workbook wasn't already open. If the
+' ErrNo is 70, then it was open. ErrNo 53 means the file doesn't exist, and therefore
+' isn't open.
+    Select Case ErrNo
+    Case 0:    IsWorkBookOpen = False
+    Case 70:   IsWorkBookOpen = True
+    Case 53:   IsWorkBookOpen = False
+    Case Else: Error ErrNo
+    End Select
+End Function
